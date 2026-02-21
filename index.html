@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OpenLandMap Dashboard</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #0f172a;
+      color: #f8fafc;
+      margin: 0;
+    }
+    .panel {
+      text-align: center;
+      padding: 2rem;
+      border-radius: 1rem;
+      background: linear-gradient(145deg, rgba(59,130,246,0.9), rgba(15,118,110,0.9));
+      max-width: 400px;
+    }
+    a {
+      color: #fde68a;
+      text-decoration: none;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <h1>OpenLandMap Frontend</h1>
+    <p>The interactive UI now lives at <a href="./frontend/index.html" target="_blank">/frontend/index.html</a>.</p>
+    <p>Start the Python backend (`uvicorn backend.app:app --reload`) before using the dashboard.</p>
+  </div>
+</body>
+</html>

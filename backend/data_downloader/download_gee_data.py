@@ -10,13 +10,13 @@ import time
 # ============================================================================
 
 PROJECT_ID = 'abm-sim-485823'
-COUNTRY_NAME = 'Spain'
+COUNTRY_NAME = 'Barcelona'
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DRY_RUN = False  # Set to True to test without downloading
 
-# Spain bounding box coordinates (created after ee.Initialize inside main())
-# W=-18.2, S=27.5, E=4.6, N=43.9 — covers mainland + Canary + Balearic Islands
-SPAIN_BOUNDS = [-18.2, 27.5, 4.6, 43.9]  # [west, south, east, north]
+# Barcelona metropolitan area bounding box
+# W=1.90, S=41.25, E=2.35, N=41.55 — covers city + metropolitan fringe
+BARCELONA_BOUNDS = [1.90, 41.25, 2.35, 41.55]  # [west, south, east, north]
 
 DATASETS = {
     "soil": [
@@ -76,7 +76,7 @@ def download_band(image, dataset_name, band_name, typology, spain_bbox):
     try:
         band_image = image.select(band_name).clip(spain_bbox)
         url = band_image.getDownloadURL({
-            'scale': 2500,         # 2.5 km — keeps each band well under GEE's 50MB limit
+            'scale': 250,          # 250 m = native OpenLandMap resolution (max precision)
             'format': 'GEO_TIFF',
             'region': spain_bbox,
             'filePerBand': False,  # single band → single .tif
@@ -132,12 +132,12 @@ def download_image(image, name, typology, spain_bbox):
 def main():
     initialize_gee()  # must come before any ee.Geometry creation
 
-    # Create Spain bbox AFTER initialization
+    # Create Barcelona bbox AFTER initialization
     spain_bbox = ee.Geometry.BBox(
-        SPAIN_BOUNDS[0],  # west
-        SPAIN_BOUNDS[1],  # south
-        SPAIN_BOUNDS[2],  # east
-        SPAIN_BOUNDS[3],  # north
+        BARCELONA_BOUNDS[0],  # west
+        BARCELONA_BOUNDS[1],  # south
+        BARCELONA_BOUNDS[2],  # east
+        BARCELONA_BOUNDS[3],  # north
     )
 
     for typology, layers in DATASETS.items():

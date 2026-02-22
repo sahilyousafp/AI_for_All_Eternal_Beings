@@ -1,27 +1,31 @@
 const API_BASE = 'http://127.0.0.1:8000/api';
-const DEFAULT_COORDS = { lat: 5.2, lon: 12.8 };
+const DEFAULT_COORDS = { lat: 40.4, lon: -3.7 }; // Madrid
 
 const yearSlider = document.getElementById('yearSlider');
 const yearValue = document.getElementById('yearValue');
 const datasetSelect = document.getElementById('datasetSelect');
 const regionInfo = document.getElementById('regionInfo');
-const backendStatus = document.getElementById('backendStatus');
 const datasetDescription = document.getElementById('datasetDescription');
 const visualizeBtn = document.getElementById('visualizeBtn');
 const predictBtn = document.getElementById('predictBtn');
 const startYearInput = document.getElementById('startYear');
 const endYearInput = document.getElementById('endYear');
-const chartTabs = document.querySelectorAll('.chart-tab');
-const chartContainer = document.querySelector('.chart-container');
+const chartTabs = document.querySelectorAll('#tab-predictions .chart-tab');
+const chartContainer = document.getElementById('chartContainer');
 const statElements = {
-  mean: document.getElementById('statMean'),
-  min: document.getElementById('statMin'),
-  max: document.getElementById('statMax'),
-  stdDev: document.getElementById('statStdDev')
+  mean:   document.getElementById('statMean'),
+  min:    document.getElementById('statMin'),
+  max:    document.getElementById('statMax'),
+  stdDev: document.getElementById('statStdDev'),
 };
+
+const localBandSelect = document.getElementById('localBandSelect');
+const localBandControl = document.getElementById('localBandControl');
+const backendStatus = document.getElementById('backendBadge');
 
 let activeChart = 'timeseries';
 let datasetMetadata = [];
+let localDatasets = {}; // To store local files from /api/local-datasets
 
 document.addEventListener('DOMContentLoaded', () => {
   initDashboard();
@@ -32,14 +36,66 @@ function initDashboard() {
   regionInfo.textContent = `Lat: ${DEFAULT_COORDS.lat.toFixed(2)}, Lon: ${DEFAULT_COORDS.lon.toFixed(2)} (simulated region)`;
   attachEventListeners();
   displayBackendStatus();
-  refreshDatasetList().then(() => {
+  Promise.all([refreshDatasetList(), fetchLocalDatasets()]).then(() => {
     updateStatistics();
-    // Initially load the map for the default dataset
-    if (window.visualizeGEEDataset) {
-      window.visualizeGEEDataset(datasetSelect.value);
-    }
+    updateLocalBandVisibility();
   });
 }
+
+async function fetchLocalDatasets() {
+  try {
+    const response = await fetch('http://127.0.0.1:8000/api/local-datasets');
+    if (response.ok) {
+      localDatasets = await response.json();
+    }
+  } catch (err) {
+    console.error('Failed to fetch local datasets:', err);
+  }
+}
+
+function updateLocalBandVisibility() {
+  if (!datasetSelect.value) return;
+  // Normalise to underscore form for prefix matching (handles "(units)" suffixes)
+  const normalizedDs = datasetSelect.value.replace(/ /g, '_');
+
+  let matchingFiles = [];
+  for (const typology in localDatasets) {
+    const matches = localDatasets[typology].filter(f => normalizedDs.startsWith(f.dataset));
+    if (matches.length > 0) {
+      matchingFiles = matches;
+      break;
+    }
+  }
+
+  localBandControl.style.display = 'block';
+  localBandSelect.innerHTML = '';
+  if (matchingFiles.length > 0) {
+    matchingFiles.forEach(f => {
+      const option = document.createElement('option');
+      option.value = JSON.stringify(f);
+      const depthLabels = { b0:'0–5cm', b10:'10–30cm', b30:'30–60cm', b60:'60–100cm', b100:'100–200cm', b200:'200cm+' };
+      option.textContent = `${depthLabels[f.band] || f.band} (Local 250m)`;
+      localBandSelect.appendChild(option);
+    });
+  } else {
+    const option = document.createElement('option');
+    option.value = '';
+    option.textContent = 'No local data available';
+    option.disabled = true;
+    localBandSelect.appendChild(option);
+  }
+}
+
+/** Visualise whichever local band is currently selected in the dropdown. */
+function autoVisualizeFirstLocalBand() {
+  const localVal = localBandSelect.value;
+  if (localVal && window.visualizeLocalBand) {
+    try {
+      window.visualizeLocalBand(JSON.parse(localVal));
+    } catch (e) { /* no-op for disabled / empty option */ }
+  }
+}
+window.autoVisualizeFirstLocalBand = autoVisualizeFirstLocalBand;
 
 function attachEventListeners() {
   yearSlider.addEventListener('input', (event) => {
@@ -48,12 +104,17 @@ function attachEventListeners() {
 
   datasetSelect.addEventListener('change', () => {
     updateDatasetDescription(datasetSelect.value);
+    updateLocalBandVisibility();
     updateStatistics();
+    autoVisualizeFirstLocalBand();
   });
 
   visualizeBtn.addEventListener('click', () => {
-    if (window.visualizeGEEDataset) {
-      window.visualizeGEEDataset(datasetSelect.value, yearSlider.value);
+    const localVal = localBandSelect.value;
+    if (localVal && window.visualizeLocalBand) {
+      try {
+        window.visualizeLocalBand(JSON.parse(localVal));
+      } catch (e) { /* no-op for disabled / empty option */ }
     }
     updateStatistics();
   });
@@ -73,6 +134,7 @@ function attachEventListeners() {
 }
 
 async function displayBackendStatus() {
+  const backendStatus = document.getElementById('backendBadge');
   try {
     const response = await fetch(`${API_BASE}/status`);
     if (!response.ok) throw new Error('backend status request failed');

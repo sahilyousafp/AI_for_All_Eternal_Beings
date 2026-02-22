@@ -82,9 +82,7 @@ function initGEEMap() {
     color: '#8888ff', weight: 1, fill: false, dashArray: '5 5', opacity: 0.5
   }).addTo(geeMap);
 
-  const datasetSelect = document.getElementById('datasetSelect');
-  const firstDs = datasetSelect?.value || 'Organic Carbon (g/kg)';
-  visualizeGEEDataset(firstDs);
+  window.autoVisualizeFirstLocalBand?.();
 }
 
 // ── Visualization logic ──────────────────────────────────────────────────────

@@ -39,10 +39,6 @@ function initDashboard() {
   Promise.all([refreshDatasetList(), fetchLocalDatasets()]).then(() => {
     updateStatistics();
     updateLocalBandVisibility();
-    // Initially load the map for the default dataset
-    if (window.visualizeGEEDataset) {
-      window.visualizeGEEDataset(datasetSelect.value);
-    }
   });
 }
 
@@ -59,21 +55,21 @@ async function fetchLocalDatasets() {
 
 function updateLocalBandVisibility() {
   if (!datasetSelect.value) return;
-  const currentDs = datasetSelect.value.replace(/ /g, '_').split('(')[0].trim();
-  
-  // Try to find matching typology group
+  // Normalise to underscore form for prefix matching (handles "(units)" suffixes)
+  const normalizedDs = datasetSelect.value.replace(/ /g, '_');
+
   let matchingFiles = [];
   for (const typology in localDatasets) {
-    const matches = localDatasets[typology].filter(f => f.dataset === currentDs);
+    const matches = localDatasets[typology].filter(f => normalizedDs.startsWith(f.dataset));
     if (matches.length > 0) {
       matchingFiles = matches;
       break;
     }
   }
 
+  localBandControl.style.display = 'block';
+  localBandSelect.innerHTML = '';
   if (matchingFiles.length > 0) {
-    localBandControl.style.display = 'block';
-    localBandSelect.innerHTML = '<option value="live">Live GEE (Default)</option>';
     matchingFiles.forEach(f => {
       const option = document.createElement('option');
       option.value = JSON.stringify(f);
@@ -82,37 +78,43 @@ function updateLocalBandVisibility() {
       localBandSelect.appendChild(option);
     });
   } else {
-    localBandControl.style.display = 'none';
-    localBandSelect.value = 'live';
+    const option = document.createElement('option');
+    option.value = '';
+    option.textContent = 'No local data available';
+    option.disabled = true;
+    localBandSelect.appendChild(option);
   }
 }
+
+/** Visualise whichever local band is currently selected in the dropdown. */
+function autoVisualizeFirstLocalBand() {
+  const localVal = localBandSelect.value;
+  if (localVal && window.visualizeLocalBand) {
+    try {
+      window.visualizeLocalBand(JSON.parse(localVal));
+    } catch (e) { /* no-op for disabled / empty option */ }
+  }
+}
+window.autoVisualizeFirstLocalBand = autoVisualizeFirstLocalBand;
 
 function attachEventListeners() {
   yearSlider.addEventListener('input', (event) => {
     yearValue.textContent = event.target.value;
-    clearTimeout(yearSlider._debounce);
-    yearSlider._debounce = setTimeout(() => {
-      if (window.visualizeGEEDataset && localBandSelect.value === 'live') {
-        window.visualizeGEEDataset(datasetSelect.value, event.target.value);
-      }
-    }, 600);
   });
 
   datasetSelect.addEventListener('change', () => {
     updateDatasetDescription(datasetSelect.value);
     updateLocalBandVisibility();
     updateStatistics();
+    autoVisualizeFirstLocalBand();
   });
 
   visualizeBtn.addEventListener('click', () => {
     const localVal = localBandSelect.value;
-    if (localVal !== 'live') {
-      const fileInfo = JSON.parse(localVal);
-      if (window.visualizeLocalBand) {
-        window.visualizeLocalBand(fileInfo);
-      }
-    } else if (window.visualizeGEEDataset) {
-      window.visualizeGEEDataset(datasetSelect.value, yearSlider.value);
+    if (localVal && window.visualizeLocalBand) {
+      try {
+        window.visualizeLocalBand(JSON.parse(localVal));
+      } catch (e) { /* no-op for disabled / empty option */ }
     }
     updateStatistics();
   });

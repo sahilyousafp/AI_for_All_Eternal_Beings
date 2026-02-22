@@ -1,2 +1,5 @@
 fastapi>=0.110.0
 uvicorn[standard]>=0.22.0
+earthengine-api
+requests
+tqdm

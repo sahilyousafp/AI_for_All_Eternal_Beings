@@ -23,8 +23,8 @@ DATASETS = {
         {"name": "Organic_Carbon", "asset": "OpenLandMap/SOL/SOL_ORGANIC-CARBON_USDA-6A1C_M/v02"},
         {"name": "Soil_pH",        "asset": "OpenLandMap/SOL/SOL_PH-H2O_USDA-4C1A2A_M/v02"},
         {"name": "Bulk_Density",   "asset": "OpenLandMap/SOL/SOL_BULKDENS-FINEEARTH_USDA-4A1H_M/v02"},
-        {"name": "Sand_Content",   "asset": "OpenLandMap/SOL/SOL_SAND-FRACTION_USDA-3A1A1A_M/v02"},
-        {"name": "Clay_Content",   "asset": "OpenLandMap/SOL/SOL_CLAY-FRACTION_USDA-3A1A1A_M/v02"},
+        {"name": "Sand_Content",   "asset": "OpenLandMap/SOL/SOL_SAND-WFRACTION_USDA-3A1A1A_M/v02"},
+        {"name": "Clay_Content",   "asset": "OpenLandMap/SOL/SOL_CLAY-WFRACTION_USDA-3A1A1A_M/v02"},
         {"name": "Soil_Texture",   "asset": "OpenLandMap/SOL/SOL_TEXTURE-CLASS_USDA-TT_M/v02"},
     ],
     "climate": [

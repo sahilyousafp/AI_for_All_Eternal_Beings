@@ -126,3 +126,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Uvicorn runtime logs
+uvicorn_out.txt
+uvicorn_err.txt

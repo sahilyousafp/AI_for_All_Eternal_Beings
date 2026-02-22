@@ -6,422 +6,414 @@
     <title>OpenLandMap Analytics Platform</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-    <!-- GeoRaster — renders local GeoTIFFs directly in Leaflet -->
     <script src="https://unpkg.com/georaster"></script>
     <script src="https://unpkg.com/georaster-layer-for-leaflet"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
       :root {
-        --bg-deep: #0f172a;
-        --bg-panel: rgba(30, 41, 59, 0.7);
-        --bg-card: rgba(30, 41, 59, 0.5);
-        --accent-primary: #8888ff;
-        --accent-secondary: #4ade80;
-        --text-main: #f1f5f9;
-        --text-muted: #94a3b8;
-        --border-color: rgba(255, 255, 255, 0.1);
-        --glass-blur: blur(12px);
+        --accent:  #818cf8;
+        --accent2: #4ade80;
+        --text:    #f1f5f9;
+        --muted:   #94a3b8;
+        --danger:  #f87171;
+        --warn:    #fbbf24;
+        /* glass */
+        --glass-bg:     rgba(8, 12, 28, 0.72);
+        --glass-border: rgba(255, 255, 255, 0.10);
+        --glass-blur:   blur(22px) saturate(160%);
+        --glass-shadow: 0 8px 40px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06);
+        --radius: 18px;
       }
 
-      * { margin: 0; padding: 0; box-sizing: border-box; }
+      *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
-      body {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        background: var(--bg-deep);
-        height: 100vh;
-        overflow: hidden;
-        color: var(--text-main);
-      }
-
-      /* ── Top-level tab bar ── */
-      .app-header {
-        display: flex;
-        align-items: center;
-        background: rgba(15, 23, 42, 0.8);
-        backdrop-filter: var(--glass-blur);
-        border-bottom: 1px solid var(--border-color);
-        padding: 0 24px;
-        height: 64px;
-        gap: 40px;
-        position: relative;
-        z-index: 1000;
-      }
-
-      .app-title {
-        font-size: 20px;
-        font-weight: 700;
-        letter-spacing: -0.5px;
-        white-space: nowrap;
-        flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-      .app-title span { color: var(--accent-primary); }
-
-      .tab-bar { display: flex; gap: 8px; }
-
-      .tab-btn {
-        padding: 10px 24px;
-        border: none;
-        background: transparent;
-        color: var(--text-muted);
-        font-size: 14px;
-        font-weight: 600;
-        cursor: pointer;
-        border-radius: 12px;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-      .tab-btn:hover { color: var(--text-main); background: rgba(255, 255, 255, 0.05); }
-      .tab-btn.active {
-        color: var(--text-main);
-        background: rgba(136, 136, 255, 0.1);
-        box-shadow: inset 0 0 0 1px rgba(136, 136, 255, 0.2);
-      }
-
-      .backend-badge {
-        margin-left: auto;
-        font-size: 12px;
-        font-weight: 500;
-        padding: 6px 12px;
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 20px;
-        border: 1px solid var(--border-color);
-      }
-      .backend-badge.ok   { color: var(--accent-secondary); }
-      .backend-badge.err  { color: #f87171; }
-
-      /* ── Tab panels ── */
-      .tab-panel { display: none; height: calc(100vh - 64px); background: #020617; }
-      .tab-panel.active { display: flex; }
-
-      /* ════════════════════════════════
-         LOCAL DATA TAB
-         ════════════════════════════════ */
-      #tab-local {
-        flex-direction: row;
-        gap: 0;
-      }
-
-      .local-sidebar {
-        width: 360px;
-        flex-shrink: 0;
-        background: var(--bg-panel);
-        backdrop-filter: var(--glass-blur);
-        border-right: 1px solid var(--border-color);
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-        padding: 24px;
-        gap: 24px;
-      }
-
-      .local-sidebar::-webkit-scrollbar { width: 4px; }
-      .local-sidebar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
-
-      .sidebar-section-title {
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 1.5px;
-        text-transform: uppercase;
-        color: var(--accent-primary);
-        margin-bottom: 16px;
-        opacity: 0.8;
-      }
-
-      .typology-group { margin-bottom: 12px; }
-
-      .typology-header {
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--text-main);
-        padding: 12px 16px;
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        transition: all 0.2s;
-      }
-      .typology-header:hover { background: rgba(255, 255, 255, 0.06); }
-      .typology-header .arrow { margin-left: auto; transition: transform .3s; opacity: 0.5; }
-      .typology-header.open .arrow { transform: rotate(90deg); }
-
-      .band-list { display: none; padding: 8px 0 8px 12px; }
-      .band-list.open { display: block; }
-
-      .band-item {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 8px 12px;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 13px;
-        color: var(--text-muted);
-        transition: all 0.2s;
-      }
-      .band-item:hover { color: var(--text-main); background: rgba(255, 255, 255, 0.04); }
-      .band-item.active { background: rgba(136, 136, 255, 0.1); color: var(--accent-primary); font-weight: 600; }
-
-      .band-status { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-      .band-status.loaded   { background: var(--accent-secondary); box-shadow: 0 0 8px var(--accent-secondary); }
-      .band-status.loading  { background: #fbbf24; }
-      .band-status.unloaded { background: rgba(255, 255, 255, 0.2); }
-
-      .info-box {
-        padding: 16px;
-        background: rgba(136, 136, 255, 0.05);
-        border: 1px solid rgba(136, 136, 255, 0.1);
-        border-radius: 12px;
-        font-size: 13px;
-        color: var(--text-muted);
-        line-height: 1.6;
-      }
-      .info-box strong { display: block; color: var(--text-main); margin-bottom: 6px; font-size: 14px; }
-
-      .layer-opacity { margin-top: auto; }
-      .layer-opacity label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 12px; font-weight: 500; }
-      .layer-opacity input[type="range"] { 
-        width: 100%; 
-        accent-color: var(--accent-primary);
-        height: 6px;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 3px;
-        appearance: none;
-      }
-
-      .clear-btn {
-        width: 100%;
-        padding: 12px;
-        background: rgba(248, 113, 113, 0.1);
-        color: #f87171;
-        border: 1px solid rgba(248, 113, 113, 0.2);
-        border-radius: 12px;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s;
-      }
-      .clear-btn:hover { background: rgba(248, 113, 113, 0.2); }
-
-      /* Layer Manager Items */
-      .active-layers-list {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-      }
-      .active-layer-card {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid var(--border-color);
-        border-radius: 10px;
-        padding: 12px;
-      }
-      .active-layer-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-      .active-layer-name {
-        font-weight: 600;
-        color: var(--text-main);
-        font-size: 13px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      .layer-controls { display: flex; gap: 8px; }
-      .layer-control-btn {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid var(--border-color);
-        width: 24px;
-        height: 24px;
-        border-radius: 6px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 10px;
-        color: var(--text-muted);
-        transition: all 0.2s;
-      }
-      .layer-control-btn:hover { background: rgba(255, 255, 255, 0.1); color: var(--text-main); }
-
-      .local-map-wrap { flex: 1; position: relative; border-left: 1px solid var(--border-color); }
-      #local-map { width: 100%; height: 100%; background: #020617; }
-
-      .map-legend {
-        position: absolute;
-        bottom: 24px;
-        right: 24px;
-        background: var(--bg-panel);
-        backdrop-filter: var(--glass-blur);
-        border: 1px solid var(--border-color);
-        padding: 12px 16px;
-        border-radius: 12px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-        z-index: 1000;
-        min-width: 180px;
-        display: none;
-        animation: slideUp 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
-      }
-
-      @keyframes slideUp {
-        from { opacity: 0; transform: translateY(10px) scale(0.95); }
-        to   { opacity: 1; transform: translateY(0)    scale(1);    }
-      }
-
-      @keyframes fadeIn {
-        from { opacity: 0; }
-        to   { opacity: 1; }
-      }
-
-      .active-layer-card { animation: fadeIn 0.3s ease; }
-
-      .map-overlay {
-        position: absolute;
-        top: 24px; right: 24px;
-        background: var(--bg-panel);
-        backdrop-filter: var(--glass-blur);
-        border: 1px solid var(--border-color);
-        border-radius: 16px;
-        padding: 16px 20px;
-        font-size: 13px;
-        color: var(--text-main);
-        box-shadow: 0 10px 40px rgba(0,0,0,0.4);
-        z-index: 500;
-        max-width: 280px;
-      }
-
-      /* ── Predictions Tab ── */
-      .pred-sidebar {
-        width: 380px;
-        flex-shrink: 0;
-        background: var(--bg-panel);
-        backdrop-filter: var(--glass-blur);
-        border-right: 1px solid var(--border-color);
-        overflow-y: auto;
-        padding: 32px;
-        display: flex;
-        flex-direction: column;
-        gap: 28px;
-      }
-
-      .pred-main { 
-        flex: 1; 
-        display: grid; 
-        grid-template-rows: 1.2fr 0.8fr; 
-        gap: 24px; 
-        padding: 24px; 
-        overflow: hidden;
+      html, body {
+        height: 100vh; overflow: hidden;
+        font-family: 'Inter', system-ui, sans-serif;
+        color: var(--text);
         background: #020617;
       }
 
-      .card {
-        background: var(--bg-card);
-        backdrop-filter: var(--glass-blur);
-        border: 1px solid var(--border-color);
-        border-radius: 20px;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-      .card-header {
-        padding: 16px 24px;
-        border-bottom: 1px solid var(--border-color);
-        font-size: 14px;
-        font-weight: 700;
-        color: var(--text-main);
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        background: rgba(255, 255, 255, 0.02);
-      }
-      .card-body { flex: 1; overflow: hidden; position: relative; }
+      /* ── Scrollbar ── */
+      ::-webkit-scrollbar { width: 4px; }
+      ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 4px; }
 
-      .chart-tabs { display: flex; gap: 8px; padding: 16px 24px 0; border-bottom: 1px solid var(--border-color); }
-      .chart-tab {
-        padding: 10px 20px;
-        background: none;
-        border: none;
-        cursor: pointer;
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--text-muted);
-        border-bottom: 2px solid transparent;
-        transition: all 0.2s;
+      /* ════════════════════════════════
+         HEADER
+         ════════════════════════════════ */
+      .app-header {
+        position: fixed; top: 0; left: 0; right: 0; z-index: 3000;
+        height: 56px;
+        display: flex; align-items: center;
+        padding: 0 20px;
+        gap: 32px;
+        background: rgba(4, 7, 20, 0.80);
+        backdrop-filter: var(--glass-blur);
+        -webkit-backdrop-filter: var(--glass-blur);
+        border-bottom: 1px solid var(--glass-border);
       }
-      .chart-tab.active { color: var(--accent-primary); border-bottom-color: var(--accent-primary); }
-      .chart-tab:hover  { color: var(--text-main); }
+
+      .app-title {
+        font-size: 17px; font-weight: 700; letter-spacing: -0.3px;
+        white-space: nowrap; flex-shrink: 0;
+        display: flex; align-items: center; gap: 8px;
+      }
+      .app-title .accent { color: var(--accent); }
+
+      .tab-bar { display: flex; gap: 4px; }
+      .tab-btn {
+        padding: 7px 18px; border: none; cursor: pointer;
+        background: transparent; color: var(--muted);
+        font-size: 13px; font-weight: 600; font-family: inherit;
+        border-radius: 10px; transition: all 0.2s;
+      }
+      .tab-btn:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+      .tab-btn.active {
+        color: var(--text);
+        background: rgba(129,140,248,0.12);
+        box-shadow: inset 0 0 0 1px rgba(129,140,248,0.25);
+      }
+
+      .backend-badge {
+        margin-left: auto; font-size: 11px; font-weight: 500;
+        padding: 5px 12px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px; color: var(--muted);
+      }
+      .backend-badge.ok  { color: var(--accent2); }
+      .backend-badge.err { color: var(--danger); }
+
+      /* ════════════════════════════════
+         TAB PANELS — full viewport below header
+         ════════════════════════════════ */
+      .tab-panel {
+        display: none; position: fixed;
+        top: 56px; left: 0; right: 0; bottom: 0;
+        overflow: hidden;
+      }
+      .tab-panel.active { display: block; }
+
+      /* ── Maps fill full panel ── */
+      #local-map, #pred-map {
+        position: absolute; inset: 0;
+        width: 100%; height: 100%;
+        z-index: 1;
+      }
+      #pred-map-status {
+        position: absolute; top: 50%; left: 50%;
+        transform: translate(-50%,-50%);
+        color: var(--muted); font-size: 13px; z-index: 2;
+        pointer-events: none;
+      }
+
+      /* ════════════════════════════════
+         GLASS PANEL — shared base
+         ════════════════════════════════ */
+      .glass {
+        background: var(--glass-bg);
+        backdrop-filter: var(--glass-blur);
+        -webkit-backdrop-filter: var(--glass-blur);
+        border: 1px solid var(--glass-border);
+        box-shadow: var(--glass-shadow);
+      }
+
+      /* ── Left side panel ── */
+      .side-panel {
+        position: absolute; top: 16px; left: 16px; bottom: 16px;
+        width: 320px; z-index: 500;
+        border-radius: var(--radius);
+        overflow-y: auto; overflow-x: hidden;
+        padding: 20px;
+        display: flex; flex-direction: column; gap: 18px;
+      }
+
+      /* ── Right chart panel ── */
+      .chart-panel {
+        position: absolute; top: 16px; right: 16px; bottom: 16px;
+        width: 400px; z-index: 500;
+        border-radius: var(--radius);
+        display: flex; flex-direction: column;
+        overflow: hidden;
+        transition: opacity 0.3s, transform 0.3s;
+      }
+      .chart-panel.hidden { opacity: 0; pointer-events: none; transform: translateX(16px); }
+
+      /* ── Floating legend / badge ── */
+      .float-badge {
+        position: absolute; z-index: 600;
+        border-radius: 14px; padding: 12px 16px;
+      }
+
+      /* ── Map info badge (top-right of local tab) ── */
+      #localMapOverlay {
+        top: 16px; right: 16px;
+        font-size: 12px; color: var(--text);
+        max-width: 220px; line-height: 1.5;
+      }
+
+      /* ── Legend ── */
+      .map-legend { bottom: 16px; right: 16px; min-width: 160px; display: none; }
+      #predLegend  { bottom: 16px; right: 432px; min-width: 160px; display: none; }
+
+      /* ════════════════════════════════
+         SIDE PANEL INTERNALS
+         ════════════════════════════════ */
+      .section-label {
+        font-size: 10px; font-weight: 700; letter-spacing: 1.4px;
+        text-transform: uppercase; color: var(--accent); opacity: 0.85;
+        margin-bottom: 10px;
+      }
+
+      .panel-divider {
+        height: 1px; background: var(--glass-border); margin: 2px 0;
+      }
+
+      /* Typology groups */
+      .typology-header {
+        font-size: 12px; font-weight: 600; color: var(--text);
+        padding: 10px 12px;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid var(--glass-border);
+        border-radius: 10px; cursor: pointer;
+        display: flex; align-items: center; gap: 8px;
+        transition: background 0.2s;
+      }
+      .typology-header:hover { background: rgba(255,255,255,0.06); }
+      .typology-header .arrow { margin-left: auto; opacity: 0.4; transition: transform .25s; }
+      .typology-header.open .arrow { transform: rotate(90deg); }
+
+      .band-list { display: none; padding: 6px 0 4px 8px; }
+      .band-list.open { display: block; }
+
+      .band-item {
+        display: flex; align-items: center; gap: 10px;
+        padding: 7px 10px; border-radius: 8px; cursor: pointer;
+        font-size: 12px; color: var(--muted); transition: all 0.15s;
+      }
+      .band-item:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+      .band-item.active { background: rgba(129,140,248,0.12); color: var(--accent); font-weight: 600; }
+
+      .band-status { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+      .band-status.loaded   { background: var(--accent2); box-shadow: 0 0 6px var(--accent2); }
+      .band-status.loading  { background: var(--warn); }
+      .band-status.unloaded { background: rgba(255,255,255,0.18); }
+
+      /* Active layers */
+      .active-layers-list { display: flex; flex-direction: column; gap: 8px; }
+      .active-layer-card {
+        background: rgba(255,255,255,0.03);
+        border: 1px solid var(--glass-border);
+        border-radius: 10px; padding: 10px;
+        animation: fadeIn 0.25s ease;
+      }
+      .active-layer-header { display: flex; justify-content: space-between; align-items: center; }
+      .active-layer-name   { font-weight: 600; font-size: 12px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+      .layer-controls      { display: flex; gap: 6px; }
+      .layer-control-btn {
+        background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border);
+        width: 22px; height: 22px; border-radius: 6px; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 9px; color: var(--muted); transition: all 0.15s;
+      }
+      .layer-control-btn:hover { background: rgba(255,255,255,0.10); color: var(--text); }
+
+      /* Info box */
+      .info-box {
+        padding: 14px; font-size: 12px; color: var(--muted); line-height: 1.6;
+        background: rgba(129,140,248,0.04);
+        border: 1px solid rgba(129,140,248,0.10);
+        border-radius: 12px;
+      }
+      .info-box strong { display: block; color: var(--text); margin-bottom: 4px; font-size: 13px; }
+
+      /* Controls */
+      .control-group { display: flex; flex-direction: column; gap: 8px; }
+      .control-group label { font-size: 10px; font-weight: 700; color: var(--accent); letter-spacing: 1px; text-transform: uppercase; opacity: 0.85; }
+
+      select, input[type="number"], input[type="text"] {
+        padding: 10px 36px 10px 14px;
+        background: rgba(8, 12, 28, 0.80);
+        border: 1px solid var(--glass-border);
+        border-radius: 11px; font-size: 13px; font-family: inherit;
+        color: var(--text); transition: border-color 0.2s, background 0.2s;
+        width: 100%;
+        appearance: none; -webkit-appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        cursor: pointer;
+      }
+      input[type="number"], input[type="text"] {
+        background-image: none;
+        padding: 10px 14px;
+      }
+      select:focus, input:focus {
+        outline: none; border-color: var(--accent);
+        background-color: rgba(129, 140, 248, 0.08);
+      }
+      select option {
+        background: #0d1225;
+        color: #f1f5f9;
+        padding: 8px 12px;
+        font-family: inherit;
+        font-size: 13px;
+      }
+      select option:checked {
+        background: #1e2d50;
+        color: #818cf8;
+      }
+      select option:disabled {
+        color: #475569;
+      }
+
+      input[type="range"] {
+        width: 100%; accent-color: var(--accent); height: 4px;
+        background: rgba(255,255,255,0.10); border-radius: 3px; appearance: none;
+        cursor: pointer;
+      }
+
+      .value-display {
+        font-size: 11px; color: var(--muted); padding: 9px 12px;
+        background: rgba(255,255,255,0.03);
+        border: 1px dashed var(--glass-border); border-radius: 10px;
+        line-height: 1.5;
+      }
+      .region-display {
+        background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.18);
+        padding: 10px; border-radius: 10px; font-size: 11px; color: #60a5fa;
+      }
+
+      /* Buttons */
+      .btn-primary {
+        padding: 12px 16px; border: none; border-radius: 12px;
+        font-size: 13px; font-weight: 700; font-family: inherit; cursor: pointer;
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        color: white; transition: all 0.25s;
+        box-shadow: 0 4px 14px rgba(99,102,241,0.25);
+        display: flex; align-items: center; justify-content: center; gap: 7px;
+      }
+      .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 22px rgba(99,102,241,0.45); filter: brightness(1.08); }
+      .btn-primary:disabled { opacity: 0.5; transform: none; cursor: default; }
+      .btn-sm { padding: 9px 14px; font-size: 12px; border-radius: 10px; }
+
+      .btn-ghost {
+        padding: 9px 14px; border: 1px solid var(--glass-border); border-radius: 10px;
+        background: rgba(255,255,255,0.04); color: var(--muted); font-size: 12px;
+        font-weight: 600; font-family: inherit; cursor: pointer; transition: all 0.2s;
+        display: flex; align-items: center; justify-content: center; gap: 6px;
+      }
+      .btn-ghost:hover { background: rgba(255,255,255,0.08); color: var(--text); }
+
+      .btn-danger {
+        padding: 9px 14px; border: 1px solid rgba(248,113,113,0.2); border-radius: 10px;
+        background: rgba(248,113,113,0.08); color: var(--danger);
+        font-size: 12px; font-weight: 600; font-family: inherit;
+        cursor: pointer; transition: all 0.2s; width: 100%;
+      }
+      .btn-danger:hover { background: rgba(248,113,113,0.16); }
+
+      /* Stats */
+      .stats-grid {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+      }
+      .stat-card {
+        background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border);
+        border-radius: 10px; padding: 10px 12px;
+        display: flex; flex-direction: column; gap: 3px;
+      }
+      .stat-card .lbl { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+      .stat-card .val { font-size: 15px; font-weight: 700; color: var(--text); }
+
+      /* ML Status */
+      .ml-status-block {
+        background: rgba(129,140,248,0.04);
+        border: 1px solid rgba(129,140,248,0.10);
+        border-radius: 14px; padding: 14px;
+      }
+      .ml-module {
+        display: flex; align-items: center; gap: 9px;
+        padding: 7px 10px; border-radius: 8px; font-size: 12px; color: var(--text);
+        background: rgba(255,255,255,0.02); margin-bottom: 5px;
+      }
+      .ml-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; transition: all .3s; background: rgba(255,255,255,0.18); }
+      .ml-dot.trained { background: var(--accent2); box-shadow: 0 0 6px var(--accent2); }
+      .ml-dot.partial { background: var(--warn); box-shadow: 0 0 6px var(--warn); }
+
+      /* Opacity control */
+      .opacity-control label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 8px; display: block; }
+
+      /* ════════════════════════════════
+         CHART PANEL INTERNALS
+         ════════════════════════════════ */
+      .chart-panel-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--glass-border);
+        font-size: 14px; font-weight: 700;
+        display: flex; align-items: center; gap: 10px;
+        background: rgba(255,255,255,0.02);
+        flex-shrink: 0;
+      }
+      .chart-panel-header .dataset-badge {
+        margin-left: auto; font-size: 10px; font-weight: 500;
+        padding: 3px 10px; border-radius: 20px;
+        background: rgba(129,140,248,0.12);
+        color: var(--accent); border: 1px solid rgba(129,140,248,0.2);
+        max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      }
+
+      .chart-tabs {
+        display: flex; gap: 0; flex-shrink: 0;
+        border-bottom: 1px solid var(--glass-border);
+        background: rgba(255,255,255,0.01);
+        padding: 0 4px;
+      }
+      .chart-tab {
+        flex: 1; padding: 11px 8px; background: none; border: none; cursor: pointer;
+        font-size: 11px; font-weight: 600; font-family: inherit;
+        color: var(--muted); border-bottom: 2px solid transparent;
+        transition: all 0.2s; white-space: nowrap;
+      }
+      .chart-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+      .chart-tab:hover  { color: var(--text); }
 
       .chart-container {
-        padding: 24px;
-        height: calc(100% - 50px);
-        overflow-y: auto;
+        flex: 1; padding: 20px; overflow-y: auto; position: relative;
       }
 
-      /* Control groups & Inputs */
-      .control-group { display: flex; flex-direction: column; gap: 10px; }
-      .control-group label { font-size: 11px; font-weight: 700; color: var(--accent-primary); letter-spacing: 1px; text-transform: uppercase; opacity: 0.8; }
-      
-      select, input[type="number"], input[type="text"] {
-        padding: 12px 16px;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        font-size: 14px;
-        color: var(--text-main);
-        font-family: inherit;
-        transition: all 0.2s;
+      .chart-message {
+        display: flex; align-items: center; justify-content: center;
+        height: 100%; flex-direction: column; gap: 10px; text-align: center;
+        color: var(--muted); font-size: 13px;
       }
-      select:focus, input:focus { outline: none; border-color: var(--accent-primary); background: rgba(255, 255, 255, 0.08); }
-      
-      .value-display { font-size: 13px; color: var(--text-muted); padding: 12px; background: rgba(255, 255, 255, 0.03); border-radius: 12px; border: 1px dashed var(--border-color); }
+      .chart-message-icon { font-size: 32px; }
 
-      .btn-primary {
-        padding: 14px 20px;
-        border: none;
-        border-radius: 14px;
-        font-size: 14px;
-        font-weight: 700;
-        cursor: pointer;
-        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-        color: white;
-        transition: all 0.3s;
-        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
-        display: flex; align-items: center; justify-content: center; gap: 8px;
+      .model-badge {
+        font-size: 10px; color: var(--accent); text-align: center;
+        margin-top: 6px; opacity: 0.8;
       }
-      .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4); filter: brightness(1.1); }
 
-      .stats-panel { background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); padding: 16px; border-radius: 16px; }
-      .stat-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border-color); font-size: 12px; }
-      .stat-row:last-child { border-bottom: none; }
-      .stat-label { color: var(--text-muted); }
-      .stat-value { font-weight: 700; color: var(--text-main); }
+      /* Year inputs side-by-side */
+      .year-row { display: flex; gap: 8px; }
+      .year-row input { width: 50%; }
 
-      .ml-status { background: rgba(136, 136, 255, 0.05); border: 1px solid rgba(136, 136, 255, 0.1); padding: 20px; border-radius: 16px; }
-      .ml-status h3 { font-size: 11px; color: var(--accent-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1.5px; }
-      .ml-module { border-radius: 8px; padding: 8px 12px; font-size: 12px; color: var(--text-main); display: flex; align-items: center; gap: 10px; background: rgba(255, 255, 255, 0.03); margin-bottom: 6px; }
-      .ml-module::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-secondary); box-shadow: 0 0 6px var(--accent-secondary); }
+      /* Animations */
+      @keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes slideUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
-      .chart-output { display: flex; flex-direction: column; gap: 8px; }
-      .chart-output-row { display: flex; justify-content: space-between; padding: 10px 12px; background: rgba(255, 255, 255, 0.02); border-radius: 8px; font-size: 13px; }
-
-      .placeholder { display: flex; align-items: center; justify-content: center; height: 100%; flex-direction: column; gap: 12px; text-align: center; }
-      .placeholder-icon { font-size: 40px; }
-
-      .region-display { background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); padding: 12px; border-radius: 12px; font-size: 12px; color: #60a5fa; }
+      .anim-fadein  { animation: fadeIn 0.3s ease; }
+      .anim-slideup { animation: slideUp 0.35s cubic-bezier(0.2,0.8,0.2,1); }
     </style>
   </head>
   <body>
 
-    <!-- ── App Header with top-level tabs ── -->
+    <!-- ════════════════════════════════
+         FIXED HEADER
+         ════════════════════════════════ -->
     <header class="app-header">
-      <div class="app-title">🌍 OpenLand<span>Map</span></div>
+      <div class="app-title">🌍 OpenLand<span class="accent">Map</span></div>
       <nav class="tab-bar">
         <button class="tab-btn active" data-tab="local">📂 Local Data</button>
         <button class="tab-btn" data-tab="predictions">📈 Predictions</button>
@@ -431,54 +423,66 @@
 
     <!-- ════════════════════════════════
          TAB: LOCAL DATA
+         Full-screen map + floating side panel
          ════════════════════════════════ -->
     <section id="tab-local" class="tab-panel active">
 
-      <!-- Sidebar: file tree -->
-      <aside class="local-sidebar">
-        <div class="sidebar-section">
-          <div class="sidebar-section-title">📂 Downloaded Datasets</div>
+      <!-- Full-screen map -->
+      <div id="local-map"></div>
+
+      <!-- Floating left panel: dataset browser -->
+      <aside class="side-panel glass" id="localSidePanel">
+        <div>
+          <div class="section-label">📂 Downloaded Datasets</div>
+          <div style="font-size:10px;color:var(--muted);padding:2px 0 6px;opacity:.7">📅 Climate &amp; Land Cover: 2020 &nbsp;|&nbsp; 🗂 Soil: Multi-year composite</div>
           <div id="localFileTree">
-            <div style="font-size:12px;color:var(--text-muted);padding:8px 0;">Loading…</div>
+            <div style="font-size:12px;color:var(--muted);padding:6px 0;">Loading…</div>
           </div>
         </div>
 
-        <div class="layer-opacity" id="opacityControl" style="display:none">
+        <div class="panel-divider"></div>
+
+        <div class="opacity-control" id="opacityControl" style="display:none">
           <label>Layer Opacity</label>
           <input type="range" id="opacitySlider" min="0" max="1" step="0.05" value="0.8" />
         </div>
 
-        <button class="clear-btn" id="clearLayersBtn">✕ Clear All Layers</button>
+        <button class="btn-danger" id="clearLayersBtn">✕ Clear All Layers</button>
 
-        <div class="sidebar-section" id="activeLayersSection" style="display:none">
-          <div class="sidebar-section-title">🛠️ Layer Manager</div>
+        <div id="activeLayersSection" style="display:none">
+          <div class="section-label">🛠 Active Layers</div>
           <div id="activeLayersList" class="active-layers-list"></div>
         </div>
 
         <div class="info-box" id="selectedBandInfo">
           <strong>Select a layer</strong>
-          Click any band in the list above to overlay it on the map.
-          Multiple layers can be active at once.
+          Click any band above to overlay it on the map. Multiple layers can be stacked.
         </div>
       </aside>
 
-        <div class="local-map-wrap">
-        <div id="local-map"></div>
-        <div id="mapLegend" class="map-legend"></div>
-        <div class="map-overlay" id="localMapOverlay">
-          <strong style="display:block;margin-bottom:8px;">🗺️ Barcelona Bounds</strong>
-          GeoTIFF coverage: 41.25°–41.55°N, 1.90°–2.35°E
-        </div>
+      <!-- Floating info badge (top-right) -->
+      <div class="glass float-badge" id="localMapOverlay">
+        <strong style="display:block;font-size:12px;margin-bottom:4px;">🗺 Barcelona Region</strong>
+        <span style="font-size:11px;color:var(--muted);">41.25°–41.55°N · 1.90°–2.35°E</span>
       </div>
+
+      <!-- Legend -->
+      <div id="mapLegend" class="glass float-badge map-legend"></div>
     </section>
 
     <!-- ════════════════════════════════
          TAB: PREDICTIONS
+         Full-screen map + left controls + right charts
          ════════════════════════════════ -->
     <section id="tab-predictions" class="tab-panel">
 
-      <!-- Sidebar -->
-      <aside class="pred-sidebar">
+      <!-- Full-screen prediction map -->
+      <div id="pred-map"></div>
+      <div id="pred-map-status">Loading local data…</div>
+
+      <!-- Floating left panel: controls -->
+      <aside class="side-panel glass" id="predSidePanel">
+
         <div class="control-group">
           <label>Dataset</label>
           <select id="datasetSelect"></select>
@@ -486,81 +490,100 @@
         </div>
 
         <div class="control-group" id="localBandControl" style="display:none">
-          <label>🛰️ Local Precision Band</label>
+          <label>Depth Band</label>
           <select id="localBandSelect">
-            <option value="live">Live GEE (Default)</option>
+            <option value="live">Default (primary)</option>
           </select>
-          <div class="value-display" style="font-size:11px; color:var(--accent-primary);">✨ High-precision Barcelona local data detected.</div>
         </div>
 
         <div class="control-group">
-          <label>📅 Year to Visualize</label>
-          <input type="range" id="yearSlider" min="2000" max="2023" value="2020" />
-          <div class="value-display">Selected: <span id="yearValue">2020</span></div>
-          <button class="btn-primary" id="visualizeBtn">👀 Visualize on Map</button>
+          <label>Prediction Model</label>
+          <select id="modelTypeSelect">
+            <option value="auto">Auto (real data or depth proxy)</option>
+            <option value="rf">🌲 Random Forest (Influence)</option>
+            <option value="ridge">📐 Ridge Regression (Depth Profile)</option>
+            <option value="mlp">🧠 Neural Network (MLP)</option>
+            <option value="temporal_ridge">📈 Temporal Ridge (year trend)</option>
+            <option value="temporal_mlp">📈 Temporal MLP (year trend)</option>
+          </select>
         </div>
 
-        <div style="border-top:1px solid var(--border-color);padding-top:16px"></div>
-        <div class="sidebar-section-title">🔮 Prediction</div>
         <div class="control-group">
-          <label>Year Range</label>
-          <div style="display:flex;gap:8px">
-            <input type="number" id="startYear" value="2024" style="width:50%" />
-            <input type="number" id="endYear"   value="2100" style="width:50%" />
+          <label>Year to Visualise</label>
+          <input type="range" id="yearSlider" min="2000" max="2200" value="2020" />
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+            <div class="value-display" style="flex:1">Year: <span id="yearValue">2020</span></div>
+            <button class="btn-primary btn-sm" id="visualizeBtn" style="flex-shrink:0">👁 View</button>
           </div>
-          <button class="btn-primary" id="predictBtn">📈 Run Prediction</button>
+          <div id="yearSliderLabel" style="font-size:10px;color:var(--muted);padding:2px 0;"></div>
         </div>
 
-        <div class="control-group">
-          <label>📍 Selected Region</label>
-          <div id="regionInfo" class="region-display">Click on map to select region</div>
-        </div>
+        <div class="panel-divider"></div>
 
-        <div class="control-group">
-          <label>📊 Statistics</label>
-          <div class="stats-panel">
-            <div class="stat-row"><span class="stat-label">Mean</span><span class="stat-value" id="statMean">--</span></div>
-            <div class="stat-row"><span class="stat-label">Min</span><span class="stat-value"  id="statMin">--</span></div>
-            <div class="stat-row"><span class="stat-label">Max</span><span class="stat-value"  id="statMax">--</span></div>
-            <div class="stat-row"><span class="stat-label">Std Dev</span><span class="stat-value" id="statStdDev">--</span></div>
+        <div>
+          <div class="section-label">🔮 100-Year Forecast</div>
+          <div class="control-group">
+            <label>Year Range</label>
+            <div class="year-row">
+              <input type="number" id="startYear" value="2026" />
+              <input type="number" id="endYear"   value="2126" />
+            </div>
+            <button class="btn-primary btn-sm" id="predictBtn">📈 Run Forecast</button>
           </div>
         </div>
 
-        <div class="ml-status">
-          <h3>🤖 ML Module Status</h3>
-          <div class="ml-module">Random Forest</div>
-          <div class="ml-module">Temporal Regression</div>
-          <div class="ml-module">LSTM Forecasting</div>
+        <div class="control-group">
+          <label>Selected Region</label>
+          <div id="regionInfo" class="region-display">Barcelona · 41.39°N, 2.17°E</div>
         </div>
+
+        <div>
+          <div class="section-label">📊 Statistics</div>
+          <div class="stats-grid">
+            <div class="stat-card"><span class="lbl">Mean</span><span class="val" id="statMean">--</span></div>
+            <div class="stat-card"><span class="lbl">Min</span><span class="val" id="statMin">--</span></div>
+            <div class="stat-card"><span class="lbl">Max</span><span class="val" id="statMax">--</span></div>
+            <div class="stat-card"><span class="lbl">Std Dev</span><span class="val" id="statStdDev">--</span></div>
+          </div>
+        </div>
+
+        <div class="panel-divider"></div>
+
+        <div class="ml-status-block">
+          <div class="section-label" style="margin-bottom:8px;">🤖 ML Model Status</div>
+          <div class="ml-module" id="ml-ridge"><span class="ml-dot"></span>Depth Regression (Ridge)</div>
+          <div class="ml-module" id="ml-mlp"><span class="ml-dot"></span>Neural Network (MLP)</div>
+          <div class="ml-module" id="ml-rf"><span class="ml-dot"></span>Random Forest (Influence)</div>
+          <div class="ml-module" id="ml-temporal_ridge"><span class="ml-dot"></span>Temporal Ridge (year trend)</div>
+          <div class="ml-module" id="ml-temporal_mlp"><span class="ml-dot"></span>Temporal MLP (year trend)</div>
+          <div class="ml-module" id="ml-temporal_rf"><span class="ml-dot"></span>Temporal Random Forest</div>
+          <button class="btn-ghost" id="trainBtn" style="margin-top:10px;width:100%;">🧠 Train Models</button>
+          <div id="trainStatus" style="font-size:10px;color:var(--muted);margin-top:6px;min-height:14px;line-height:1.4;"></div>
+        </div>
+
       </aside>
 
-      <!-- Main: map + charts -->
-      <div class="pred-main">
-        <div class="card">
-          <div class="card-header">🗺️ GEE Live Map</div>
-          <div class="card-body">
-            <div id="pred-map"></div>
-            <div id="pred-map-status">Loading GEE layer…</div>
-            <div id="predLegend" class="map-overlay" style="top: auto; bottom: 16px; right: 16px; display: none;"></div>
-          </div>
+      <!-- Floating right panel: auto-loading charts -->
+      <div class="chart-panel glass hidden" id="chartPanel">
+        <div class="chart-panel-header">
+          📉 Analysis &amp; Insights
+          <span class="dataset-badge" id="chartDatasetBadge">—</span>
         </div>
-
-        <div class="card">
-          <div class="card-header">📉 Analysis &amp; Insights</div>
-          <div class="chart-tabs">
-            <button class="chart-tab active" data-tab="timeseries">Time Series</button>
-            <button class="chart-tab" data-tab="change">Change</button>
-            <button class="chart-tab" data-tab="correlation">Correlation</button>
-            <button class="chart-tab" data-tab="forecast">ML Forecast</button>
-          </div>
-          <div class="chart-container" id="chartContainer">
-            <div class="placeholder">
-              <div class="placeholder-icon">📊</div>
-              <p>Click a tab to load analysis</p>
-            </div>
+        <div class="chart-tabs">
+          <button class="chart-tab active" data-tab="timeseries">📊 Depth</button>
+          <button class="chart-tab" data-tab="correlation">🔗 Influence</button>
+          <button class="chart-tab" data-tab="forecast">📈 Forecast</button>
+        </div>
+        <div class="chart-container" id="chartContainer">
+          <div class="chart-message">
+            <div class="chart-message-icon">📊</div>
+            <p>Select a dataset to begin</p>
           </div>
         </div>
       </div>
+
+      <!-- Prediction map legend -->
+      <div id="predLegend" class="glass float-badge"></div>
     </section>
 
     <script src="local-data.js"></script>

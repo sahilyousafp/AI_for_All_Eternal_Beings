@@ -34,10 +34,41 @@ const MODIS_COLOURS = [
   '#94b07c','#5d9c5c','#4c8c4c','#2266aa','#b4dcff','#f5f5f5',
 ];
 
+// MODIS IGBP class names (index = class value)
+const MODIS_CLASS_NAMES = [
+  'Water', 'Evergreen Needleleaf Forest', 'Evergreen Broadleaf Forest',
+  'Deciduous Needleleaf Forest', 'Deciduous Broadleaf Forest', 'Mixed Forest',
+  'Closed Shrubland', 'Open Shrubland', 'Woody Savanna', 'Savanna',
+  'Grassland', 'Permanent Wetland', 'Cropland', 'Urban/Built-up',
+  'Cropland/Vegetation Mosaic', 'Snow/Ice', 'Barren', 'Unclassified',
+];
+
+// Units per internal dataset name (shared with gee-map.js via global scope)
+const DATASET_UNITS = {
+  Organic_Carbon: 'g/kg', Soil_pH: 'pH', Bulk_Density: 't/m³',
+  Sand_Content: '%', Clay_Content: '%', Soil_Texture: 'class',
+  Precipitation_CHIRPS: 'mm/yr', MODIS_Land_Cover: 'class',
+};
+
 const DEPTH_LABELS = {
   b0:'0–5 cm', b10:'10–30 cm', b30:'30–60 cm',
   b60:'60–100 cm', b100:'100–200 cm', b200:'200 cm+',
 };
+
+// ── Pixel sampling helper (used by both tabs) ────────────────────────────────
+/**
+ * Sample the pixel value at a geographic coordinate from a parsed georaster.
+ * Returns null if out of bounds, nodata, or NaN.
+ */
+function sampleGeoRaster(gr, lat, lng) {
+  const { xmin, xmax, ymin, ymax, width, height, values, noDataValue } = gr;
+  if (lng < xmin || lng > xmax || lat < ymin || lat > ymax) return null;
+  const col = Math.min(width  - 1, Math.floor((lng - xmin) / (xmax - xmin) * width));
+  const row = Math.min(height - 1, Math.floor((ymax - lat)  / (ymax - ymin) * height));
+  const v = values?.[0]?.[row]?.[col];
+  if (v == null || isNaN(v) || v === noDataValue) return null;
+  return v;
+}
 
 // ── Percentile display range ─────────────────────────────────────────────────
 /**
@@ -113,27 +144,33 @@ function updateLegend(dataset, typology, georaster, displayMin, displayMax) {
   const el = document.getElementById('mapLegend');
   if (!el) return;
 
-  const key  = dsKey(dataset);
-  const ramp = PALETTES[key] ?? PALETTES[`_${typology}`] ?? PALETTES._soil;
+  const key   = dsKey(dataset);
+  const ramp  = PALETTES[key] ?? PALETTES[`_${typology}`] ?? PALETTES._soil;
   const { min: autoMin, max: autoMax } = computeDisplayRange(georaster);
-  const min  = (displayMin ?? autoMin)?.toFixed(1) ?? '?';
-  const max  = (displayMax ?? autoMax)?.toFixed(1) ?? '?';
-  const title = (dataset || '').replace(/_/g, ' ');
+  const minVal = (displayMin ?? autoMin);
+  const maxVal = (displayMax ?? autoMax);
+  const units  = DATASET_UNITS[dataset] || '';
+  const title  = (dataset || '').replace(/_/g, ' ');
 
   if (key === 'MODIS_Land_Cover' || !ramp) {
-    el.innerHTML = `<strong>${title}</strong><em style="font-size:10px;opacity:.7">Discrete classes</em>`;
     el.style.display = 'block';
+    el.innerHTML = `
+      <div style="font-weight:700;font-size:11px;margin-bottom:4px">${title}</div>
+      <em style="font-size:10px;opacity:.7;display:block">Discrete IGBP land cover classes</em>
+      <p style="font-size:9px;opacity:.5;margin-top:4px">Click map to identify class name</p>`;
     return;
   }
 
   const stops = ramp.map((c, i) => `${c} ${(i/(ramp.length-1)*100).toFixed(0)}%`).join(', ');
   el.style.display = 'block';
   el.innerHTML = `
-    <div style="font-weight:700;font-size:11px;margin-bottom:4px;letter-spacing:.4px">${title}</div>
-    <div style="height:10px;border-radius:5px;background:linear-gradient(to right,${stops});margin-bottom:4px"></div>
-    <div style="display:flex;justify-content:space-between;font-size:10px;opacity:.8">
-      <span>${min}</span><span>${max}</span>
-    </div>`;
+    <div style="font-weight:700;font-size:11px;margin-bottom:6px">${title}${units ? ` <span style="font-weight:400;opacity:.6">(${units})</span>` : ''}</div>
+    <div style="height:10px;border-radius:5px;background:linear-gradient(to right,${stops});margin-bottom:6px"></div>
+    <div style="display:flex;justify-content:space-between;font-size:10px">
+      <div><div style="font-weight:600">${minVal?.toFixed(2)}</div><div style="opacity:.5;font-size:9px">Low</div></div>
+      <div style="text-align:right"><div style="font-weight:600">${maxVal?.toFixed(2)}</div><div style="opacity:.5;font-size:9px">High</div></div>
+    </div>
+    <p style="font-size:9px;margin-top:5px;opacity:.5;text-align:center">2nd–98th percentile · click map for pixel value</p>`;
 }
 
 function hideLegend() {
@@ -165,6 +202,29 @@ function initLocalMap() {
   }, 50);
 
   localMap.fitBounds(BCN);
+
+  // ── Pixel value popup on map click ──────────────────────────────────────────
+  localMap.on('click', function(e) {
+    const top = activeLayers[activeLayers.length - 1];
+    if (!top) return;
+    const gr = tifCache[top.key];
+    if (!gr) return;
+    const v = sampleGeoRaster(gr, e.latlng.lat, e.latlng.lng);
+    if (v === null) return;
+    const ds    = (top.fileInfo.dataset || '').replace(/_/g, ' ');
+    const units = DATASET_UNITS[top.fileInfo.dataset] || '';
+    let valStr;
+    if (top.fileInfo.dataset === 'MODIS_Land_Cover') {
+      const cls = Math.round(v);
+      valStr = `Class ${cls}: <strong>${MODIS_CLASS_NAMES[cls] ?? 'Unknown'}</strong>`;
+    } else {
+      valStr = `<strong>${v.toFixed(3)}</strong> ${units}`;
+    }
+    L.popup({ maxWidth: 200 })
+      .setLatLng(e.latlng)
+      .setContent(`<div style="font-size:12px"><em>${ds}</em><br>${valStr}</div>`)
+      .openOn(localMap);
+  });
 }
 
 // ── Layer ordering ───────────────────────────────────────────────────────────
@@ -197,7 +257,9 @@ function renderLayerManager() {
   [...activeLayers].reverse().forEach((item, revIdx) => {
     const realIdx = activeLayers.length - 1 - revIdx;
     const depth   = DEPTH_LABELS[item.fileInfo.band] || item.fileInfo.band;
-    const name    = `${(item.fileInfo.dataset || '').replace(/_/g,' ')} (${depth})`;
+    const yearTag = (item.fileInfo.year != null && typeof item.fileInfo.year === 'number')
+      ? ` · ${item.fileInfo.year}` : '';
+    const name    = `${(item.fileInfo.dataset || '').replace(/_/g,' ')} (${depth}${yearTag})`;
     const ramp    = PALETTES[dsKey(item.fileInfo.dataset)] ?? PALETTES._soil;
     const swatches = ramp ? ramp.map(c =>
       `<span style="display:inline-block;width:8px;height:8px;background:${c};border-radius:2px"></span>`
@@ -261,8 +323,16 @@ window.moveLayerDown = (idx) => {
 
 // ── Load / toggle a GeoTIFF layer ────────────────────────────────────────────
 async function toggleLayer(typology, fileInfo, itemEl) {
-  const key   = `${typology}/${fileInfo.filename}`;
-  const dotId = `dot-${fileInfo.filename.replace(/\W/g,'_')}`;
+  // For temporal year-based files, include year in the key to avoid collision
+  // across years that share the same filename.
+  const key = (fileInfo.year != null && typeof fileInfo.year === 'number')
+    ? `${typology}/year=${fileInfo.year}/${fileInfo.filename}`
+    : `${typology}/${fileInfo.filename}`;
+
+  // Build the dotId the same way buildFileTree does
+  const dotId = (fileInfo.year != null && typeof fileInfo.year === 'number')
+    ? `dot-${fileInfo.filename.replace(/\W/g,'_')}_${fileInfo.year}`
+    : `dot-${fileInfo.filename.replace(/\W/g,'_')}`;
 
   // Already active → remove
   if (activeLayers.find(i => i.key === key)) {
@@ -294,10 +364,13 @@ async function toggleLayer(typology, fileInfo, itemEl) {
     });
 
     layer.addTo(localMap);
+    // Force immediate canvas tile refresh (fixes stale color after switching datasets)
+    setTimeout(() => layer.redraw(), 10);
     activeLayers.push({ key, layer, fileInfo: { ...fileInfo, typology }, opacity: 0.8, dotId });
 
     document.getElementById(dotId)?.setAttribute('class', 'band-status loaded');
     updateInfoBox(fileInfo, 'loaded', gr);
+    updateLegend(fileInfo.dataset, typology, gr);   // keep map legend in sync
     renderLayerManager();
     reorderLayers();
 
@@ -324,9 +397,10 @@ function updateInfoBox(fileInfo, state = 'idle', gr = null) {
     box.innerHTML = `<strong>${ds} — ${depth}</strong>⏳ Fetching GeoTIFF…`;
   } else if (state === 'loaded' && gr) {
     const { min, max } = computeDisplayRange(gr);
+    const yearStr = fileInfo.year ? ` · ${fileInfo.year === 'composite' ? 'Composite' : `Year ${fileInfo.year}`}` : '';
     box.innerHTML = `<strong>${ds} — ${depth}</strong>`
       + `Display range: ${min.toFixed(2)} – ${max.toFixed(2)} (2nd–98th %ile)<br>`
-      + `CRS: EPSG:${gr.projection ?? 4326} · NoData: ${gr.noDataValue ?? '—'}`;
+      + `CRS: EPSG:${gr.projection ?? 4326} · NoData: ${gr.noDataValue ?? '—'}${yearStr}`;
   } else if (state === 'error') {
     box.innerHTML = `<strong style="color:#f87171">⚠️ Load failed</strong>Check the backend logs.`;
   }
@@ -374,22 +448,90 @@ async function buildFileTree() {
             ).join('')}</span>`
           : '';
 
+        // Detect temporal datasets: multiple distinct numeric years
+        const numericYears = [...new Set(
+          bands.map(f => f.year).filter(y => typeof y === 'number')
+        )].sort((a, b) => a - b);
+        const isTemporal = numericYears.length > 1;
+
         const dsLabel = document.createElement('div');
         dsLabel.style.cssText
-          = 'font-size:11px;font-weight:700;color:#666;padding:6px 8px 2px;display:flex;align-items:center;gap:6px';
-        dsLabel.innerHTML = `${dsName.replace(/_/g,' ')} ${swatches}`;
-        bandList.appendChild(dsLabel);
+          = 'font-size:11px;font-weight:700;color:#ccc;padding:6px 8px 2px;display:flex;align-items:center;gap:6px';
 
-        bands.forEach(f => {
-          const dotId = `dot-${f.filename.replace(/\W/g,'_')}`;
-          const item  = document.createElement('div');
-          item.className  = 'band-item';
-          item.dataset.key = `${typology}/${f.filename}`;
-          item.innerHTML  = `<span class="band-status unloaded" id="${dotId}"></span>`
-                           + `${DEPTH_LABELS[f.band] || f.band}`;
-          item.addEventListener('click', () => toggleLayer(typology, f, item));
-          bandList.appendChild(item);
-        });
+        if (isTemporal) {
+          // Temporal: show dataset name + year range badge
+          const yearRange = `${numericYears[0]}–${numericYears[numericYears.length - 1]}`;
+          dsLabel.innerHTML = `${dsName.replace(/_/g,' ')} ${swatches}`
+            + `<span style="background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.3);border-radius:10px;padding:1px 7px;font-size:9px;color:#4ade80;margin-left:auto">📅 ${numericYears.length} years · ${yearRange}</span>`;
+          bandList.appendChild(dsLabel);
+
+          // Year selector row
+          const yearRow = document.createElement('div');
+          yearRow.style.cssText = 'padding:3px 8px 4px;display:flex;align-items:center;gap:7px';
+          yearRow.innerHTML = '<span style="font-size:10px;color:#64748b;white-space:nowrap;flex-shrink:0">Filter year:</span>';
+
+          const yearSel = document.createElement('select');
+          yearSel.style.cssText = [
+            'flex:1;background:rgba(255,255,255,0.06)',
+            'border:1px solid rgba(255,255,255,0.14)',
+            'border-radius:7px;color:#f1f5f9;font-size:11px',
+            'padding:3px 6px;cursor:pointer;outline:none',
+          ].join(';');
+
+          numericYears.slice().reverse().forEach(y => {
+            const opt = document.createElement('option');
+            opt.value = y;
+            opt.textContent = `📅 ${y}`;
+            yearSel.appendChild(opt);
+          });
+          yearRow.appendChild(yearSel);
+          bandList.appendChild(yearRow);
+
+          // Container that holds band items for the selected year
+          const bandContainer = document.createElement('div');
+          bandList.appendChild(bandContainer);
+
+          const renderBandsForYear = (year) => {
+            bandContainer.innerHTML = '';
+            const yearFiles = bands.filter(f => f.year === year);
+            yearFiles.forEach(f => {
+              const dotId = `dot-${f.filename.replace(/\W/g,'_')}_${f.year}`;
+              const bandLabel = DEPTH_LABELS[f.band]
+                || f.band.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase());
+              const item = document.createElement('div');
+              item.className = 'band-item';
+              item.dataset.key = `${typology}/year=${f.year}/${f.filename}`;
+              item.innerHTML = `<span class="band-status unloaded" id="${dotId}"></span>${bandLabel}`;
+              item.addEventListener('click', () => toggleLayer(typology, f, item));
+              bandContainer.appendChild(item);
+            });
+          };
+
+          // Default to most recent year
+          renderBandsForYear(numericYears[numericYears.length - 1]);
+          yearSel.addEventListener('change', () => renderBandsForYear(parseInt(yearSel.value)));
+
+        } else {
+          // Static / depth-banded: show single year badge or none
+          const metaYear = bands[0]?.year;
+          const yearBadge = metaYear && metaYear !== null
+            ? `<span style="background:rgba(136,136,255,0.15);border:1px solid rgba(136,136,255,0.3);border-radius:10px;padding:1px 6px;font-size:9px;color:#8888ff;margin-left:auto">${metaYear === 'composite' ? '🗂 composite' : `📅 ${metaYear}`}</span>`
+            : '';
+
+          dsLabel.innerHTML = `${dsName.replace(/_/g,' ')} ${swatches} ${yearBadge}`;
+          bandList.appendChild(dsLabel);
+
+          bands.forEach(f => {
+            const dotId = `dot-${f.filename.replace(/\W/g,'_')}`;
+            const item  = document.createElement('div');
+            item.className  = 'band-item';
+            item.dataset.key = `${typology}/${f.filename}`;
+            item.innerHTML  = `<span class="band-status unloaded" id="${dotId}"></span>`
+                             + `${DEPTH_LABELS[f.band] || f.band}`;
+            item.addEventListener('click', () => toggleLayer(typology, f, item));
+            bandList.appendChild(item);
+          });
+        }
       }
 
       header.addEventListener('click', () => {
@@ -441,6 +583,12 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         window.initGEEMap?.();
       } else {
         requestAnimationFrame(() => window.geeMap?.invalidateSize());
+      }
+      // Auto-show chart panel and load chart if dataset selected
+      const sel = document.getElementById('datasetSelect');
+      if (sel?.value && window.showChartPanel) {
+        window.showChartPanel(sel.value);
+        window.loadActiveChart?.();
       }
     }
   });

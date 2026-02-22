@@ -6,19 +6,18 @@ import io
 import time
 
 # ============================================================================
-# 1. CONFIGURATION & DATASETS
+# 1. CONFIGURATION
 # ============================================================================
 
-PROJECT_ID = 'abm-sim-485823'
-COUNTRY_NAME = 'Barcelona'
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DRY_RUN = False  # Set to True to test without downloading
+PROJECT_ID   = 'abm-sim-485823'
+BASE_DIR     = os.path.dirname(os.path.abspath(__file__))
+DRY_RUN      = False   # True = print without downloading
 
-# Barcelona metropolitan area bounding box
-# W=1.90, S=41.25, E=2.35, N=41.55 — covers city + metropolitan fringe
-BARCELONA_BOUNDS = [1.90, 41.25, 2.35, 41.55]  # [west, south, east, north]
+# Barcelona metropolitan area bounding box [west, south, east, north]
+BARCELONA_BOUNDS = [1.90, 41.25, 2.35, 41.55]
 
-DATASETS = {
+# ─── Static datasets (one file per band, no year loop) ────────────────────────
+STATIC_DATASETS = {
     "soil": [
         {"name": "Organic_Carbon", "asset": "OpenLandMap/SOL/SOL_ORGANIC-CARBON_USDA-6A1C_M/v02"},
         {"name": "Soil_pH",        "asset": "OpenLandMap/SOL/SOL_PH-H2O_USDA-4C1A2A_M/v02"},
@@ -27,151 +26,213 @@ DATASETS = {
         {"name": "Clay_Content",   "asset": "OpenLandMap/SOL/SOL_CLAY-WFRACTION_USDA-3A1A1A_M/v02"},
         {"name": "Soil_Texture",   "asset": "OpenLandMap/SOL/SOL_TEXTURE-CLASS_USDA-TT_M/v02"},
     ],
-    "climate": [
-        {
-            "name": "Precipitation_CHIRPS",
-            "asset": "UCSB-CHG/CHIRPS/PENTAD",
-            "is_collection": True,
-            "reduction": "mean",
-            "start": "2020-01-01",
-            "end":   "2020-12-31",
-        },
-    ],
-    "land_cover": [
-        {
-            "name": "MODIS_Land_Cover",
-            "asset": "MODIS/061/MCD12Q1",
-            "is_collection": True,
-            "reduction": "mode",
-            "start": "2020-01-01",
-            "end":   "2020-12-31",
-        },
-    ],
 }
+
+# ─── Temporal datasets (downloaded year by year → year=XXXX/ subfolders) ─────
+#
+# For each dataset:
+#   asset      : GEE ImageCollection ID
+#   bands      : which bands to export (keep this small!)
+#   reduction  : how to collapse the collection within each year ("mean"|"mode")
+#   year_start : first year to download
+#   year_end   : last year to download (inclusive)
+#   typology   : subfolder name
+#
+TEMPORAL_DATASETS = [
+    {
+        "typology":   "climate",
+        "name":       "Precipitation_CHIRPS",
+        "asset":      "UCSB-CHG/CHIRPS/PENTAD",
+        "bands":      ["precipitation"],          # CHIRPS has a single band
+        "reduction":  "mean",                     # annual mean
+        "year_start": 2000,
+        "year_end":   2024,
+    },
+    {
+        "typology":   "land_cover",
+        "name":       "MODIS_Land_Cover",
+        "asset":      "MODIS/061/MCD12Q1",
+        "bands":      ["LC_Type1"],               # IGBP primary classification only
+        "reduction":  "mode",                     # annual mode (most common class)
+        "year_start": 2001,
+        "year_end":   2023,
+    },
+]
 
 # ============================================================================
 # 2. INITIALIZATION
 # ============================================================================
 
 def initialize_gee():
-    print(f"Initializing Earth Engine with project: {PROJECT_ID}...")
+    print(f"Initializing Earth Engine (project: {PROJECT_ID})…")
     try:
         ee.Initialize(project=PROJECT_ID)
-        print("✅ Initialization successful.")
+        print("  GEE ready.")
     except Exception as e:
-        print(f"❌ Failed to initialize Earth Engine: {e}")
-        print("Run: earthengine authenticate")
+        print(f"  ERROR: {e}")
+        print("  Run:  earthengine authenticate")
         exit(1)
 
 # ============================================================================
-# 3. DOWNLOAD LOGIC
+# 3. DOWNLOAD HELPERS
 # ============================================================================
 
-def download_band(image, dataset_name, band_name, typology, spain_bbox):
-    """Downloads a single band of a GEE image as an individual GeoTIFF."""
-    out_dir = os.path.join(BASE_DIR, typology)
+def _download_band(image, dataset_name, band_name, out_dir, spain_bbox):
+    """Download a single band of a GEE image as a GeoTIFF file."""
     os.makedirs(out_dir, exist_ok=True)
     out_path = os.path.join(out_dir, f"{dataset_name}.{band_name}.tif")
 
+    if os.path.isfile(out_path):
+        print(f"   [skip] already exists: {os.path.relpath(out_path, BASE_DIR)}")
+        return True
+
     try:
-        band_image = image.select(band_name).clip(spain_bbox)
-        url = band_image.getDownloadURL({
-            'scale': 250,          # 250 m = native OpenLandMap resolution (max precision)
+        url = image.select(band_name).clip(spain_bbox).getDownloadURL({
+            'scale': 250,
             'format': 'GEO_TIFF',
             'region': spain_bbox,
-            'filePerBand': False,  # single band → single .tif
+            'filePerBand': False,
         })
     except Exception as e:
-        print(f"   ❌ URL error [{band_name}]: {e}")
-        return
+        print(f"   [error] URL for {band_name}: {e}")
+        return False
 
     try:
-        response = requests.get(url, stream=True, timeout=600)
-        response.raise_for_status()
+        resp = requests.get(url, stream=True, timeout=600)
+        resp.raise_for_status()
     except Exception as e:
-        print(f"   ❌ HTTP error [{band_name}]: {e}")
-        return
+        print(f"   [error] HTTP for {band_name}: {e}")
+        return False
 
-    raw = response.content
-    # GEE sometimes still returns a ZIP even for single bands
-    if raw[:2] == b'PK':
+    raw = resp.content
+    if raw[:2] == b'PK':   # GEE sometimes returns a ZIP
         try:
             with zipfile.ZipFile(io.BytesIO(raw)) as z:
-                tif_files = [f for f in z.namelist() if f.lower().endswith('.tif')]
-                if tif_files:
-                    with z.open(tif_files[0]) as src, open(out_path, 'wb') as dst:
+                tifs = [f for f in z.namelist() if f.lower().endswith('.tif')]
+                if tifs:
+                    with z.open(tifs[0]) as src, open(out_path, 'wb') as dst:
                         dst.write(src.read())
         except zipfile.BadZipFile:
-            print(f"   ❌ Bad ZIP for [{band_name}]")
-            return
+            print(f"   [error] bad ZIP for {band_name}")
+            return False
     else:
         with open(out_path, 'wb') as f:
             f.write(raw)
 
-    print(f"   ✅ {out_path}")
+    print(f"   [ok]   {os.path.relpath(out_path, BASE_DIR)}")
+    return True
 
 
-def download_image(image, name, typology, spain_bbox):
-    """Fetches band list, then downloads each band as a separate GeoTIFF."""
-    print(f"\nDownloading {name}...")
+def _get_image_for_bands(image, bands):
+    """Return image filtered to specific bands (if they exist)."""
     try:
-        band_names = image.bandNames().getInfo()
-    except Exception as e:
-        print(f"❌ Could not retrieve band names for {name}: {e}")
-        return
-
-    print(f"   Bands ({len(band_names)}): {band_names}")
-    for band in band_names:
-        download_band(image, name, band, typology, spain_bbox)
-        time.sleep(1)  # small pause between band requests
+        available = image.bandNames().getInfo()
+        use = [b for b in bands if b in available]
+        return image.select(use), use
+    except Exception:
+        return image, bands
 
 # ============================================================================
-# 4. MAIN EXECUTION
+# 4. STATIC DATASET DOWNLOAD (soil — flat folder, all bands)
+# ============================================================================
+
+def download_static(spain_bbox):
+    for typology, layers in STATIC_DATASETS.items():
+        print(f"\n{'='*50}\n{typology.upper()}\n{'='*50}")
+        for layer in layers:
+            name  = layer['name']
+            print(f"\n  {name}…")
+            if DRY_RUN:
+                print(f"    [dry-run]  {typology}/{name}.*")
+                continue
+            try:
+                image = ee.Image(layer['asset'])
+                band_names = image.bandNames().getInfo()
+            except Exception as e:
+                print(f"    [error] {e}")
+                continue
+            out_dir = os.path.join(BASE_DIR, typology)
+            for band in band_names:
+                _download_band(image, name, band, out_dir, spain_bbox)
+                time.sleep(1)
+
+# ============================================================================
+# 5. TEMPORAL DATASET DOWNLOAD (climate / land_cover — year=XXXX/ subfolders)
+# ============================================================================
+
+def download_temporal(spain_bbox):
+    for cfg in TEMPORAL_DATASETS:
+        typology  = cfg['typology']
+        name      = cfg['name']
+        asset     = cfg['asset']
+        bands     = cfg['bands']
+        reduction = cfg['reduction']
+        y_start   = cfg['year_start']
+        y_end     = cfg['year_end']
+
+        print(f"\n{'='*50}\n{typology.upper()} — {name}  ({y_start}–{y_end})\n{'='*50}")
+
+        for year in range(y_start, y_end + 1):
+            start_dt = f"{year}-01-01"
+            end_dt   = f"{year}-12-31"
+            out_dir  = os.path.join(BASE_DIR, typology, f"year={year}")
+
+            if DRY_RUN:
+                print(f"  [dry-run] {typology}/year={year}/{name}.*.tif")
+                continue
+
+            print(f"  {year}…", end=" ", flush=True)
+            try:
+                col = (ee.ImageCollection(asset)
+                         .filterBounds(spain_bbox)
+                         .filterDate(start_dt, end_dt))
+                count = col.size().getInfo()
+                if count == 0:
+                    print(f"no images for {year}, skipping")
+                    continue
+
+                if reduction == 'mean':
+                    image = col.mean()
+                elif reduction == 'mode':
+                    image = col.mode()
+                else:
+                    image = col.first()
+
+                image, use_bands = _get_image_for_bands(image, bands)
+
+            except Exception as e:
+                print(f"collection error: {e}")
+                continue
+
+            print()  # newline after year header
+            for band in use_bands:
+                _download_band(image, name, band, out_dir, spain_bbox)
+                time.sleep(1)
+
+            time.sleep(2)
+
+# ============================================================================
+# 6. MAIN
 # ============================================================================
 
 def main():
-    initialize_gee()  # must come before any ee.Geometry creation
+    initialize_gee()
 
-    # Create Barcelona bbox AFTER initialization
     spain_bbox = ee.Geometry.BBox(
-        BARCELONA_BOUNDS[0],  # west
-        BARCELONA_BOUNDS[1],  # south
-        BARCELONA_BOUNDS[2],  # east
-        BARCELONA_BOUNDS[3],  # north
+        BARCELONA_BOUNDS[0],   # west
+        BARCELONA_BOUNDS[1],   # south
+        BARCELONA_BOUNDS[2],   # east
+        BARCELONA_BOUNDS[3],   # north
     )
 
-    for typology, layers in DATASETS.items():
-        print(f"\n{'='*50}")
-        print(f"Typology: {typology.upper()}")
-        print(f"{'='*50}")
+    print("\n[1/2] Static datasets (soil depth bands)")
+    download_static(spain_bbox)
 
-        for layer in layers:
-            name  = layer['name']
-            asset = layer['asset']
+    print("\n[2/2] Temporal datasets (year-by-year)")
+    download_temporal(spain_bbox)
 
-            if layer.get('is_collection'):
-                collection = (
-                    ee.ImageCollection(asset)
-                      .filterBounds(spain_bbox)
-                      .filterDate(layer['start'], layer['end'])
-                )
-                reduction = layer.get('reduction', 'mean')
-                if reduction == 'mean':
-                    image = collection.mean()
-                elif reduction == 'mode':
-                    image = collection.mode()
-                else:
-                    image = collection.first()
-            else:
-                image = ee.Image(asset)
-
-            if DRY_RUN:
-                print(f"[DRY RUN] Would download: {name}  →  {typology}/")
-            else:
-                download_image(image, name, typology, spain_bbox)
-                time.sleep(2)  # brief pause between requests
-
-    print("\n✅ All downloads complete.")
+    print("\nAll downloads complete.")
 
 if __name__ == "__main__":
     main()
+

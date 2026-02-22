@@ -1,8 +1,10 @@
 import math
+import os
 from datetime import datetime
 
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from backend.ml_models.utils import DATASETS, find_dataset
 from backend.ml_models.time_series import time_series_model
@@ -24,6 +26,11 @@ app.add_middleware(
     allow_methods=["GET", "OPTIONS"],
     allow_headers=["*"],
 )
+
+# Serve the downloaded GeoTIFFs as static files
+DATA_DIR = os.path.join(os.path.dirname(__file__), "data_downloader")
+if os.path.isdir(DATA_DIR):
+    app.mount("/data", StaticFiles(directory=DATA_DIR), name="local_data")
 
 import ee
 
@@ -55,6 +62,29 @@ def _now_iso():
 @app.get("/api/status")
 def status():
     return {"status": "ok", "timestamp": _now_iso()}
+
+
+@app.get("/api/local-datasets")
+def local_datasets():
+    """Scans the data_downloader directory and returns all GeoTIFFs grouped by typology."""
+    result = {}
+    typologies = ["soil", "climate", "land_cover"]
+    for typology in typologies:
+        folder = os.path.join(DATA_DIR, typology)
+        if not os.path.isdir(folder):
+            continue
+        files = sorted(f for f in os.listdir(folder) if f.endswith(".tif"))
+        result[typology] = [
+            {
+                "filename": f,
+                "url": f"/data/{typology}/{f}",
+                # Parse dataset name and band from filename like "Organic_Carbon.b0.tif"
+                "dataset": f.rsplit(".", 2)[0],
+                "band": f.rsplit(".", 2)[1] if f.count(".") >= 2 else "default",
+            }
+            for f in files
+        ]
+    return result
 
 
 @app.get("/api/datasets")

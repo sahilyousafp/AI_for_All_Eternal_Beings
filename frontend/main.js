@@ -1,5 +1,5 @@
 const API_BASE = 'http://127.0.0.1:8000/api';
-const DEFAULT_COORDS = { lat: 5.2, lon: 12.8 };
+const DEFAULT_COORDS = { lat: 40.4, lon: -3.7 };
 
 const yearSlider = document.getElementById('yearSlider');
 const yearValue = document.getElementById('yearValue');
@@ -35,8 +35,8 @@ function initDashboard() {
   refreshDatasetList().then(() => {
     updateStatistics();
     // Initially load the map for the default dataset
-    if (window.visualizeGEEDataset) {
-      window.visualizeGEEDataset(datasetSelect.value);
+    if (window.visualizeDataset) {
+      window.visualizeDataset(datasetSelect.value);
     }
   });
 }
@@ -52,8 +52,8 @@ function attachEventListeners() {
   });
 
   visualizeBtn.addEventListener('click', () => {
-    if (window.visualizeGEEDataset) {
-      window.visualizeGEEDataset(datasetSelect.value, yearSlider.value);
+    if (window.visualizeDataset) {
+      window.visualizeDataset(datasetSelect.value, yearSlider.value);
     }
     updateStatistics();
   });

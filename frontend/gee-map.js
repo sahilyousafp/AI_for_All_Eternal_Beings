@@ -14,7 +14,7 @@ function createGEEMap() {
   const mapDiv = document.getElementById('map');
   
   // Create map using Leaflet
-  geeMap = L.map('map').setView([5.2, 12.8], 4);
+  geeMap = L.map('map').setView([40.0, -3.5], 6);
   
   // Add base layer
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -88,7 +88,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Export for use in main.js
-window.visualizeGEEDataset = visualizeDataset;
+window.visualizeDataset = visualizeDataset;
 window.getMapBounds = () => {
     if (geeMap) {
         return geeMap.getBounds();

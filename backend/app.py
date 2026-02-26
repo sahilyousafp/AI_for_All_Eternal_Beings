@@ -1,4 +1,3 @@
-import math
 from datetime import datetime
 
 from fastapi import FastAPI, Query
@@ -10,12 +9,13 @@ from backend.ml_models.prediction import prediction_model
 from backend.ml_models.change_detection import change_detection_model
 from backend.ml_models.correlation import correlation_model
 from backend.ml_models.forecast import forecast_model
+from backend.ml_models.data_loader import load_point_statistics
 
 
 app = FastAPI(
     title="OpenLandMap Analytics Backend",
-    description="Provides dataset metadata, statistics, and placeholder analytics for the dashboard.",
-    version="0.1.0"
+    description="Soil & environmental analytics powered by real GeoTIFF data and ML.",
+    version="1.0.0",
 )
 
 app.add_middleware(
@@ -25,65 +25,107 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-import ee
+# ---------------------------------------------------------------------------
+# GEE — optional; app starts fine without credentials
+# ---------------------------------------------------------------------------
 
+GEE_AVAILABLE = False
 try:
-    ee.Initialize(project='abm-sim-485823')
-except Exception as e:
-    print(f"Warning: Earth Engine initialization failed. Error: {e}")
+    import ee
+    ee.Initialize(project="abm-sim-485823")
+    GEE_AVAILABLE = True
+    print("✅ Earth Engine initialised.")
+except Exception as _gee_err:
+    print(f"⚠️  Earth Engine unavailable: {_gee_err}")
+    print("   Map tiles will not load. All other endpoints use local rasters.")
 
-@app.get("/api/map")
-def get_map_layer(dataset: str = Query(...)):
-    selected = find_dataset(dataset)
-    try:
-        # Select the first band (e.g., surface 'b0' depth) since palette requires a single band
-        image = ee.Image(selected["asset"]).select(0)
-        vis_params = selected.get("visualization", {})
-        map_id = image.getMapId(vis_params)
-        return {
-            "dataset": selected["name"],
-            "urlFormat": map_id["tile_fetcher"].url_format,
-        }
-    except Exception as e:
-        print(f"Error generating GEE Layer: {e}")
-        return {"error": str(e)}
 
 def _now_iso():
     return datetime.utcnow().isoformat() + "Z"
 
 
+# ---------------------------------------------------------------------------
+# Health
+# ---------------------------------------------------------------------------
+
 @app.get("/api/status")
 def status():
-    return {"status": "ok", "timestamp": _now_iso()}
+    return {
+        "status":        "ok",
+        "timestamp":     _now_iso(),
+        "gee_available": GEE_AVAILABLE,
+    }
 
+
+# ---------------------------------------------------------------------------
+# Datasets
+# ---------------------------------------------------------------------------
 
 @app.get("/api/datasets")
 def list_datasets():
     return {"items": DATASETS}
 
 
-@app.get("/api/statistics")
-def statistics(dataset: str = Query(...), lat: float = 0.0, lon: float = 0.0):
+# ---------------------------------------------------------------------------
+# Map tiles (requires GEE)
+# ---------------------------------------------------------------------------
+
+@app.get("/api/map")
+def get_map_layer(dataset: str = Query(...)):
+    if not GEE_AVAILABLE:
+        return {"error": "Earth Engine is not initialised. Map tiles unavailable."}
+
     selected = find_dataset(dataset)
-    base = (len(selected["name"]) * 1.2 + abs(lat) + abs(lon)) % 80
-    mean = round(base + 12 + math.sin(lat + lon), 2)
-    min_value = round(mean - 5 + math.cos(lat - lon), 2)
-    max_value = round(mean + 6 + math.sin(lat * 0.3), 2)
-    std_dev = round((max_value - min_value) / 3, 2)
+    try:
+        image      = ee.Image(selected["asset"]).select(0)
+        vis_params = selected.get("visualization", {})
+        map_id     = image.getMapId(vis_params)
+        return {
+            "dataset":   selected["name"],
+            "urlFormat": map_id["tile_fetcher"].url_format,
+        }
+    except Exception as exc:
+        print(f"GEE map error: {exc}")
+        return {"error": str(exc)}
+
+
+# ---------------------------------------------------------------------------
+# Statistics — real raster sampling
+# ---------------------------------------------------------------------------
+
+@app.get("/api/statistics")
+def statistics(dataset: str = Query(...), lat: float = 40.4, lon: float = -3.7):
+    selected = find_dataset(dataset)
+    stats    = load_point_statistics(selected["name"], lat, lon, window_px=5)
+
+    if stats is None:
+        return {
+            "dataset":    selected["name"],
+            "lat":        lat,
+            "lon":        lon,
+            "statistics": {"mean": None, "min": None, "max": None, "stdDev": None},
+            "note":       "Point outside Spain raster coverage.",
+            "generated":  _now_iso(),
+        }
+
     return {
-        "dataset": selected["name"],
-        "lat": lat,
-        "lon": lon,
-        "statistics": {"mean": mean, "min": min_value, "max": max_value, "stdDev": std_dev},
-        "generated": _now_iso(),
+        "dataset":    selected["name"],
+        "lat":        lat,
+        "lon":        lon,
+        "statistics": stats,
+        "generated":  _now_iso(),
     }
 
 
+# ---------------------------------------------------------------------------
+# Analytics
+# ---------------------------------------------------------------------------
+
 @app.get("/api/analysis/time-series")
 def time_series(
-    dataset: str = Query(...),
-    start_year: int = 2000,
-    end_year: int = 2100,
+    dataset:    str = Query(...),
+    start_year: int = 0,
+    end_year:   int = 200,
 ):
     selected = find_dataset(dataset)
     return time_series_model(selected, start_year, end_year)
@@ -91,24 +133,26 @@ def time_series(
 
 @app.get("/api/analysis/prediction")
 def prediction(
-    dataset: str = Query(...),
-    start_year: int = Query(...),
-    end_year: int = Query(...),
-    lat_min: float = Query(...),
-    lon_min: float = Query(...),
-    lat_max: float = Query(...),
-    lon_max: float = Query(...),
+    dataset:    str   = Query(...),
+    start_year: int   = Query(...),
+    end_year:   int   = Query(...),
+    lat_min:    float = Query(...),
+    lon_min:    float = Query(...),
+    lat_max:    float = Query(...),
+    lon_max:    float = Query(...),
 ):
     selected = find_dataset(dataset)
-    return prediction_model(selected, start_year, end_year, lat_min, lon_min, lat_max, lon_max)
-
+    return prediction_model(
+        selected, start_year, end_year,
+        lat_min, lon_min, lat_max, lon_max,
+    )
 
 
 @app.get("/api/analysis/change-detection")
 def change_detection(
     dataset: str = Query(...),
-    year_a: int = 2000,
-    year_b: int = 2023,
+    year_a:  int = 0,
+    year_b:  int = 200,
 ):
     selected = find_dataset(dataset)
     return change_detection_model(selected, year_a, year_b)

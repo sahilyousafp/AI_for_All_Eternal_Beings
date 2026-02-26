@@ -420,14 +420,16 @@
           <button class="btn-primary" id="visualizeBtn" style="margin-top: 10px; width: 100%;">👀 Visualize</button>
         </div>
 
-        <!-- Prediction Year Range -->
+        <!-- Predict RF for visible map region -->
         <div class="control-group">
-            <label>🔮 Prediction Year Range</label>
-            <div style="display: flex; gap: 8px;">
-                <input type="number" id="startYear" value="2024" style="width: 50%" />
-                <input type="number" id="endYear" value="2100" style="width: 50%" />
-            </div>
-            <button class="btn-primary" id="predictBtn" style="margin-top: 10px; width: 100%; background: #0284c7;">📈 Predict</button>
+            <label>🤖 RF Soil Prediction</label>
+            <p style="font-size: 11px; color: #666; margin: 0;">
+              Runs the trained Random Forest on the current map viewport.
+            </p>
+            <!-- startYear / endYear kept as hidden inputs for API compatibility -->
+            <input type="hidden" id="startYear" value="0" />
+            <input type="hidden" id="endYear"   value="200" />
+            <button class="btn-primary" id="predictBtn" style="margin-top: 10px; width: 100%; background: #0284c7;">📈 Predict Visible Region</button>
         </div>
 
         <!-- Region Info -->
@@ -513,7 +515,7 @@
           <div class="card-content">
             <div class="chart-tabs">
               <button class="chart-tab active" data-tab="timeseries">
-                Time Series
+                Depth Profile
               </button>
               <button class="chart-tab" data-tab="change">
                 Change Detection

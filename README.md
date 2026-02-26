@@ -1,377 +1,206 @@
-# 🌍 OpenLandMap Analytics Platform - Quick Start Guide
+# OpenLandMap Analytics Platform
 
-## What You Just Got
-
-A **complete, production-ready platform** for soil and environmental analysis with:
-
-✅ **Intuitive Web Dashboard** - Modern UI with interactive controls  
-✅ **Google Earth Engine Integration** - Powerful cloud geospatial processing  
-✅ **Pre-built Data Layer** - 6 OpenLandMap soil datasets ready to use  
-✅ **ML-Ready Architecture** - 4 ML modules ready for implementation  
-✅ **Analytics Engine** - Time series, change detection, correlation analysis  
+A full-stack geospatial analytics platform for soil and environmental monitoring. Combines a FastAPI backend, Leaflet dashboard, Google Earth Engine tile streaming, and trained ML models — all running on locally downloaded Spain rasters (no cloud compute required for ML).
 
 ---
 
-## 📁 Files Created
+## What's Built
+
+| Layer | Status | Details |
+|---|---|---|
+| Web Dashboard | Live | Leaflet map + sidebar controls + 4 chart tabs |
+| FastAPI Backend | Live | 8 endpoints, real raster data, GEE optional |
+| GEE Map Tiles | Live (needs credentials) | Streams OpenLandMap layers via GEE |
+| Data — Spain | Downloaded | 50 GeoTIFFs at 2.5km, clipped to Spain + Canaries |
+| Random Forest | Trained | 93% accuracy, 215k pixels, 10 soil texture classes |
+| Depth Profile | Live | Real 6-layer vertical profile (0–200 cm) per dataset |
+| Linear Forecast | Live | scipy linregress on depth profile + CI extrapolation |
+| Change Detection | Live | Real surface (0 cm) vs deep (200 cm) gradient |
+| Correlation | Live | Pearson r vs precipitation, land cover, other soil props |
+
+---
+
+## Project Structure
 
 ```
-Your Folder/
+AI_for_All_Eternal_Beings/
 ├── backend/
-│   ├── app.py                          ← FastAPI backend serving datasets & analytics
-│   └── requirements.txt                ← Python dependencies for the API
+│   ├── app.py                          ← FastAPI — 8 endpoints, real raster sampling
+│   ├── requirements.txt                ← All dependencies including ML libs
+│   ├── data_downloader/
+│   │   ├── download_gee_data.py        ← Script to download more data via GEE
+│   │   ├── soil/                       ← 36 GeoTIFFs (6 properties × 6 depths)
+│   │   ├── climate/                    ← CHIRPS precipitation (2020)
+│   │   └── land_cover/                 ← MODIS land cover (2020, 13 bands)
+│   └── ml_models/
+│       ├── data_loader.py              ← rasterio-based raster loading & pixel extraction
+│       ├── train_rf.py                 ← One-time RF training script
+│       ├── utils.py                    ← Dataset config & find_dataset()
+│       ├── time_series.py              ← Real depth profile (0–200 cm)
+│       ├── forecast.py                 ← Linear trend + CI extrapolation
+│       ├── change_detection.py         ← Surface vs deep gradient
+│       ├── correlation.py              ← Pearson r from rasterio resampling
+│       ├── prediction.py               ← RF inference on any bbox
+│       └── models/
+│           ├── rf_soil_classifier.joblib  ← Trained RF (83 MB)
+│           └── rf_scaler.joblib           ← Fitted StandardScaler
 ├── frontend/
-│   ├── index.html                      ← Browser dashboard (HTML + CSS)
-│   └── main.js                         ← UI logic that calls the Python API
-├── gee_master_application.js          ← GEE Script (Copy to Code Editor)
-├── PLATFORM_ARCHITECTURE.md           ← Full Technical Documentation
-├── ML_IMPLEMENTATION_GUIDE.md         ← Step-by-step ML Implementation
-└── README.md                          ← This file
-
-> Root `index.html` now summarizes how to start the stack and links directly to `frontend/index.html`.
+│   ├── index.html                      ← Dashboard UI (map + sidebar + chart tabs)
+│   ├── main.js                         ← API calls, chart rendering, event handling
+│   └── gee-map.js                      ← Leaflet map + GEE tile layer
+├── gee_master_application.js           ← GEE Code Editor script (standalone)
+├── PLATFORM_ARCHITECTURE.md
+├── ML_IMPLEMENTATION_GUIDE.md
+└── README.md
 ```
 
 ---
 
-## 🚀 How to Use
+## Quick Start
 
-### Step 1: Run the Python backend
-```
-1. Install dependencies: `pip install -r backend/requirements.txt`
-2. Start the API: `uvicorn backend.app:app --reload --host 127.0.0.1 --port 8000`
-3. Leave the endpoint running at http://localhost:8000 while you explore the UI.
+### 1. Install dependencies
+```bash
+pip install -r backend/requirements.txt
 ```
 
-### Step 2: Serve & explore the dashboard
+### 2. (One-time) Train the RF model
+Skip if `backend/ml_models/models/rf_soil_classifier.joblib` already exists.
+```bash
+python -m backend.ml_models.train_rf
 ```
-1. From the root directory run `cd frontend && python -m http.server 5173` (or use your preferred static server).
-2. Open http://localhost:5173/index.html in the browser – the dashboard will fetch metadata and analytics from the Python backend.
-3. Use the controls to change datasets, years, and analysis types; the charts and stats now come from the API.
-```
+Expected output: ~93% test accuracy, model saved to `models/`.
 
-### Step 3: Deploy to Google Earth Engine (LIVE DATA)
+### 3. Start the backend
+```bash
+uvicorn backend.app:app --reload --host 127.0.0.1 --port 8000
 ```
-1. Go to: https://code.earthengine.google.com
-2. Create: New script
-3. Copy & Paste: Contents of gee_master_application.js
-4. Run: Script starts with interactive UI in Inspector
-5. Interact: Select datasets, visualize maps, compute statistics
-```
+The API starts cleanly even without GEE credentials. All ML endpoints use local rasters.
 
-### Step 4: Implement ML (When Ready)
-```
-1. Read: ML_IMPLEMENTATION_GUIDE.md
-2. Follow: 4-week implementation roadmap
-3. Use: Python template code provided
-4. Export: Training data from GEE → Process → Re-import results
-```
+### 4. Open the dashboard
+Open `frontend/index.html` directly in a browser (no build step, no server needed).
+
+Map centres on Spain. Click a chart tab to load real data.
 
 ---
 
-## 💡 Key Features
+## API Endpoints
 
-### 📊 Data Visualization
-- Single-dataset layers with auto-computed min/max
-- Multiple visualization palettes (soil-specific)
-- Legend support
-- Region-based statistics (mean, min, max, std dev)
-- Interactive map with click-to-select regions
-
-### 🔬 Analytics Capabilities
-| Feature | Status | Use Case |
-|---------|--------|----------|
-| **Dataset Selection** | ✅ Live | Choose from 6 soil datasets |
-| **Year Slider** | ✅ Live | Select analysis year (2000-2023) |
-| **Statistics** | ✅ Live | Compute region-level metrics |
-| **Time Series** | ✅ Ready | Track changes over time |
-| **Change Detection** | ✅ Ready | Identify degradation patterns |
-| **Exports** | ✅ Live | Download data as GeoTIFF/CSV |
-
-### 🤖 ML Module Status
-| Module | Status | Implementation |
-|--------|--------|-----------------|
-| **Random Forest** | ✅ Ready | Classification with scikit-learn |
-| **Temporal Regression** | ✅ Ready | Trend analysis with SciPy |
-| **LSTM Forecasting** | ✅ Ready | Time series prediction with TensorFlow |
-| **Correlation** | ✅ Ready | Feature importance & relationships |
+| Endpoint | Data Source | Returns |
+|---|---|---|
+| `GET /api/status` | — | Health check + GEE availability flag |
+| `GET /api/datasets` | Config | 6 dataset definitions with vis params |
+| `GET /api/map?dataset=` | GEE (requires credentials) | Tile URL for Leaflet |
+| `GET /api/statistics?dataset=&lat=&lon=` | Local raster | Real mean/min/max/std from 5×5 pixel window |
+| `GET /api/analysis/time-series?dataset=` | Local rasters | 6-point depth profile (0–200 cm) |
+| `GET /api/analysis/forecast?dataset=&years=` | Local rasters | Linear trend + CI, extrapolated to 1000 cm |
+| `GET /api/analysis/change-detection?dataset=` | Local rasters | Surface (0 cm) vs deep (200 cm) delta |
+| `GET /api/analysis/correlation?dataset=` | Local rasters | Pearson r vs precipitation, land cover, soil props |
+| `GET /api/analysis/prediction?dataset=&lat_min=&lon_min=&lat_max=&lon_max=` | RF model | Class confidence per depth layer for bbox |
 
 ---
 
-## 🎯 Use Cases
+## Datasets
 
-### For Researchers
-- Export OpenLandMap data for local analysis
-- Generate time series for degradation studies
-- Build ML models on soil property trends
-- Validate field observations at scale
+All from **OpenLandMap** — free, global, 250m resolution (downloaded at 2.5km for Spain):
 
-### For Policymakers
-- Monitor soil health across regions
-- Identify at-risk agricultural areas
-- Track land management impacts
-- Plan conservation strategies
+| Dataset | Units | Depth Layers |
+|---|---|---|
+| Organic Carbon | g/kg | b0, b10, b30, b60, b100, b200 |
+| Soil pH (H2O) | pH | b0, b10, b30, b60, b100, b200 |
+| Bulk Density | t/m3 | b0, b10, b30, b60, b100, b200 |
+| Sand Content | % | b0, b10, b30, b60, b100, b200 |
+| Clay Content | % | b0, b10, b30, b60, b100, b200 |
+| Soil Texture Class | USDA class 1–12 | b0, b10, b30, b60, b100, b200 |
 
-### For Agricultural Professionals
-- Assess soil quality conditions
-- Predict future soil states (LSTM)
-- Correlate climate with soil changes
-- Optimize field management
+Additional: CHIRPS precipitation (2020 mean) + MODIS land cover (2020).
 
-### For Students
-- Learn GEE basics through live example
-- Understand ML on geospatial data
-- Practice data export/import workflows
-- Explore soil science concepts
+**Region**: Spain + Canary + Balearic Islands (`[-18.2, 27.5, 4.6, 43.9]`)
 
 ---
 
-## 📄 Datasets Included
+## ML Details
 
-All from **OpenLandMap** (https://openlandmap.org/):
+### Random Forest — Soil Texture Classifier
+- **Features**: Organic Carbon, Soil pH, Bulk Density, Sand %, Clay % (surface b0)
+- **Labels**: Soil Texture Class raster (independent — no label leakage)
+- **Training samples**: 215,660 valid pixels
+- **Test accuracy**: 93.03%
+- **Top features**: Clay (49%), Sand (40%), OrgC (4%), pH (3%), BulkDens (3%)
+- **Classes present in Spain**: Clay, Clay Loam, Sandy Clay Loam, Loam, Silt Loam, Silt, Loamy Sand, Sand
 
-| Dataset | Variable | Units | Range | Resolution |
-|---------|----------|-------|-------|-----------|
-| Organic Carbon | Soil C content | g/kg | 0-500 | 250m |
-| Soil pH | H2O pH | pH units | 3-9 | 250m |
-| Bulk Density | Soil density | t/m³ | 0.8-2.0 | 250m |
-| Texture | Classification | Classes | 1-12 | 250m |
-| Sand % | Sand fraction | % | 0-100 | 250m |
-| Clay % | Clay fraction | % | 0-100 | 250m |
+### Depth Profile (replaces fake "Time Series")
+OpenLandMap soil datasets are static snapshots — there is no temporal dimension. The depth profile shows how each property changes from surface (0 cm) to 200 cm, which is real, meaningful vertical data.
 
-**Coverage**: Global | **Temporal**: 2000-2023 | **Free**: Yes & License-free
+### Linear Trend (Forecast tab)
+Fits `scipy.stats.linregress` to the 6 known depth points and extrapolates beyond 200 cm with 95% prediction intervals. R² typically >0.95 for Organic Carbon and pH.
+
+### Correlation
+Resamples CHIRPS and MODIS rasters to the soil grid via `rasterio.warp.reproject`, then computes `scipy.stats.pearsonr` over all co-located valid pixels (~590k). All p-values are effectively 0 at this sample size.
 
 ---
 
-## 🔧 Technical Stack
+## Downloading More Data
 
-```
-Frontend:        HTML5, CSS3, Vanilla JavaScript (fetch + placeholder charts)
-Backend:         Python FastAPI (serves metadata, stats, placeholder analytics)
-Cloud Platform:  Local Python service for rapid prototyping
-ML Framework:    TensorFlow, scikit-learn, SciPy
-Data Format:     GeoTIFF, CSV, TFRecord
-Deployment:      Static site + FastAPI backend
+To extend coverage (different region or more years), edit `backend/data_downloader/download_gee_data.py`:
+
+```python
+COUNTRY_NAME = 'France'          # change region
+SPAIN_BOUNDS = [...]             # update bounding box
+
+# For temporal data add years to the collections:
+"start": "2015-01-01",
+"end":   "2015-12-31",
 ```
 
-## 🧠 Backend API
-
-| Endpoint | Purpose |
-|----------|---------|
-| `/api/status` | Health check used by the dashboard to verify the Python service is online. |
-| `/api/datasets` | Returns dataset metadata (name, asset path, units, visualization parameters). |
-| `/api/statistics` | Accepts dataset, lat/lon and returns mean, min, max, and standard deviation. |
-| `/api/analysis/time-series` | Generates synthetic year/value pairs used by the time series tab. |
-| `/api/analysis/change-detection` | Reports before/after statistics plus delta for the selected year window. |
-| `/api/analysis/correlation` | Returns placeholder correlation scores for climate and land cover drivers. |
-| `/api/analysis/forecast` | Emits a 5‑year forecast series that the frontend displays in the ML Forecast tab. |
-
----
-
-## 📖 Documentation
-
-### Deep Dives
-
-**[PLATFORM_ARCHITECTURE.md](PLATFORM_ARCHITECTURE.md)**
-- System design & workflow
-- Component breakdown
-- Integration scenarios
-- Performance optimization
-- Deployment instructions
-
-**[ML_IMPLEMENTATION_GUIDE.md](ML_IMPLEMENTATION_GUIDE.md)**
-- Phase 1: Data export
-- Phase 2: Random Forest code
-- Phase 3: Temporal regression code
-- Phase 4: LSTM forecasting code
-- Full Python implementations ready to use
-
----
-
-## ⚡ Quick Examples
-
-### Example 1: View Soil Organic Carbon
-```javascript
-// In GEE Code Editor:
-var image = ee.Image("OpenLandMap/SOL/SOL_ORGANIC-CARBON_USDA-6A1C_M/v02");
-Map.addLayer(image, {min: 0, max: 500, palette: ['white', 'brown', 'black']}, "Organic C");
-```
-
-### Example 2: Compute Regional Statistics
-```javascript
-// In GEE Code Editor:
-var region = ee.Geometry.Rectangle([-10, 40, 10, 50]);
-var stats = image.reduceRegion({
-  reducer: ee.Reducer.mean(),
-  geometry: region,
-  scale: 250
-});
-print(stats);
-```
-
-### Example 3: Export Training Data
-```javascript
-// In GEE Code Editor:
-Export.image.toCloudStorage({
-  image: image,
-  bucket: 'your-bucket',
-  scale: 250,
-  fileFormat: 'TFRecord'
-});
+Then re-run:
+```bash
+python backend/data_downloader/download_gee_data.py
+python -m backend.ml_models.train_rf   # retrain on new data
 ```
 
 ---
 
-## 💡 Pro Tips
+## Technical Stack
 
-### Tip 1: GEE Performance
-- Work at 250m native resolution
-- Aggregate to 1000m+ for faster processing
-- Use sampling for interactive responsiveness
-- Filter by region before computation
-
-### Tip 2: Data Quality
-- OpenLandMap = processed OpenData
-- Global coverage but some gaps in dense urban areas
-- Regular updates (check source)
-- Cross-validate with field observations
-
-### Tip 3: ML Success
-- Start with Random Forest (easiest)
-- Then move to Temporal Regression
-- LSTM requires 10+ years of data
-- Export 1000+ training samples for best results
-
-### Tip 4: Scaling
-- This architecture works from single field to continental scale
-- GEE handles distributed computing automatically
-- Consider resolution vs. processing time tradeoff
+| Component | Technology |
+|---|---|
+| Frontend | HTML5, CSS3, Vanilla JS, Leaflet 1.9 |
+| Backend | FastAPI + uvicorn |
+| Raster I/O | rasterio |
+| ML | scikit-learn (RandomForestClassifier) |
+| Stats | scipy (linregress, pearsonr) |
+| Numerics | numpy |
+| Model persistence | joblib |
+| GEE (optional) | earthengine-api |
 
 ---
 
-## 🔐 Getting Started Checklist
+## GEE Script (Standalone)
 
-- [ ] Open index.html in web browser to see the UI
-- [ ] Sign into Google Earth Engine (https://code.earthengine.google.com)
-- [ ] Create new script and paste gee_master_application.js
-- [ ] Run script - see live map with controls
-- [ ] Click on map to analyze different regions
-- [ ] Change dataset, year, analysis type in controls
-- [ ] Try export button (goes to Tasks tab)
-- [ ] Read PLATFORM_ARCHITECTURE.md for deep understanding
-- [ ] Plan ML implementation timeline (4 weeks)
-- [ ] Set up Python environment for ML modules
+`gee_master_application.js` is a self-contained Google Earth Engine Code Editor script. It does not depend on the Python backend — it queries OpenLandMap assets directly from GEE.
+
+```
+1. Go to https://code.earthengine.google.com
+2. New script → paste gee_master_application.js → Run
+3. Interactive UI appears with dataset selector, map, and charts
+```
 
 ---
 
-## 🆘 Troubleshooting
+## Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| **GEE script won't run** | Sign in to Google account first |
-| **Map looks blank** | Zoom in more (high altitude = sparse data) |
-| **Statistics show undefined** | Click on map to select region first |
-| **Export button does nothing yet** | Click Tasks tab in GEE - export pending there |
-| **Chart not displaying** | Not connected to backend yet - GEE only |
-| **Python ML scripts error** | Install deps: `pip install tensorflow pandas scikit-learn` |
-
----
-
-## 📞 Support Resources
-
-- **GEE Docs**: https://developers.google.com/earth-engine
-- **OpenLandMap**: https://openlandmap.org/
-- **Python ML**: TensorFlow, scikit-learn documentation
-- **Community**: GEE Slack, StackOverflow
+| Issue | Fix |
+|---|---|
+| `uvicorn: command not found` | Use `py -m uvicorn backend.app:app --reload` |
+| Map tiles not loading | GEE credentials needed — run `earthengine authenticate` |
+| Prediction returns "no coverage" | Zoom into Spain before clicking Predict |
+| RF model not found | Run `python -m backend.ml_models.train_rf` |
+| Statistics show `null` | Clicked outside Spain raster bounds — click inside Spain |
+| `rasterio` install fails | Try `pip install rasterio --find-links https://girder.github.io/large_image_wheels` |
 
 ---
 
-## 🎓 Learning Path (Recommended)
-
-### Week 1-2: Basics
-- Explore index.html UI
-- Deploy gee_master_application.js
-- Understand OpenLandMap datasets
-- Play with visualization palettes
-
-### Week 3-4: Analytics
-- Work with Time Series module
-- Compute Change Detection
-- Extract statistics for multiple regions
-- Understand correlation analysis
-
-### Week 5-8: ML
-- Follow ML_IMPLEMENTATION_GUIDE.md
-- Implement Random Forest
-- Build Temporal Regression
-- Train LSTM on your data
-
-### Week 9+: Production
-- Deploy dashboard with backend
-- Schedule automated exports
-- Set up monitoring dashboards
-- Publish insights
-
----
-
-## 🎯 What's Next?
-
-### Immediate (This Week)
-1. ✅ Platform built - you're here!
-2. Deploy to GEE ← **DO THIS NOW**
-3. Explore UI & data
-4. Understand architecture docs
-
-### Short Term (This Month)
-- Export training data
-- Set up Python environment
-- Implement Random Forest
-- Create change detection maps
-
-### Medium Term (3 Months)
-- Deploy LSTM model
-- Generate forecast maps
-- Build correlation matrix
-- Present results
-
-### Long Term (Vision)
-- Real-time monitoring dashboard
-- Automated alerting system
-- Mobile app interface
-- Integration with Government/NGO systems
-
----
-
-## 📊 Success Metrics
-
-After implementation, you'll have:
-
-✅ **Data Layer**: 6 globally available datasets  
-✅ **Visual Layer**: Interactive map with 250m resolution  
-✅ **Analytics**: Time series, trends, correlations  
-✅ **ML Models**: Random Forest + LSTM + Regression  
-✅ **Predictions**: Future soil state forecasts   
-✅ **Impact**: Actionable insights for soil management  
-
----
-
-## 🚀 You're Ready!
-
-**Start with GEE deployment →** https://code.earthengine.google.com
-
-Copy `gee_master_application.js` and paste into a new script. Run. 
-
-That's it! You now have a working geospatial analytics platform.
-
----
-
-**Questions?** See PLATFORM_ARCHITECTURE.md for comprehensive details.  
-**Ready for ML?** Follow ML_IMPLEMENTATION_GUIDE.md for step-by-step code.  
-**Want to customize?** All code is open and fully documented.
-
----
-
-**Built**: February 13, 2026  
-**Version**: 1.0 - Production Ready  
-**ML Status**: ✅ Architecture Complete, Code Ready  
-**Next**: Implement Phase 3 & 4 (ML modules)
-
-**Let's build the future of geospatial intelligence! 🚀**
+**Branch**: Rafik's-Branch
+**Region**: Spain
+**ML Status**: Trained — 93% accuracy
+**Last updated**: February 2026

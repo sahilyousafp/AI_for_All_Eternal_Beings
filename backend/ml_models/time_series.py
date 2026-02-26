@@ -1,48 +1,50 @@
 """
-Depth-profile time series — returns Chart.js-ready data.
+time_series.py — Real soil depth profile from downloaded GeoTIFFs.
 
-The depth bands (b0→b200) act as the analysis dimension, showing how
-a property changes from the soil surface down. Each band's mean pixel
-value across the Barcelona region is returned as a data point.
+The OpenLandMap soil datasets are static (single best-estimate snapshots),
+not time series. Instead of faking temporal data, we return the vertical
+depth profile: mean property value at each of the 6 depth layers
+(0, 10, 30, 60, 100, 200 cm).
+
+The frontend chart re-uses the "year" field to hold depth_cm, which is
+clearly labelled in the API response so clients can display it correctly.
+start_year / end_year are accepted but ignored (API compatibility).
 """
-import warnings
 
-import numpy as np
-import rasterio
-from rasterio.errors import NotGeoreferencedWarning
+from backend.ml_models.data_loader import load_depth_profile
 
 
-def _read_mean(path: str) -> float | None:
-    if not path:
-        return None
-    try:
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", NotGeoreferencedWarning)
-            with rasterio.open(path) as src:
-                data = src.read(1, masked=True)
-        vals = data.compressed().astype(float)
-        return float(np.mean(vals)) if len(vals) > 0 else None
-    except Exception:
-        return None
+def time_series_model(selected, start_year, end_year):
+    dataset_name = selected["name"]
 
+    # Soil Texture is a classification — depth profile is still meaningful
+    # but mean of integer classes is less interpretable; we include it anyway.
+    profile = load_depth_profile(dataset_name)
 
-def time_series_model(selected: dict, start_year: int, end_year: int) -> dict:
-    from backend.ml_models.utils import ordered_bands
+    if not profile:
+        return {
+            "dataset":    dataset_name,
+            "profile_type": "depth",
+            "x_label":    "Depth (cm)",
+            "points":     [],
+            "error":      "Could not load raster data for this dataset.",
+        }
 
-    bands = ordered_bands(selected)
-    labels, values = [], []
-    for label, path in bands:
-        m = _read_mean(path)
-        if m is not None:
-            labels.append(label)
-            values.append(round(m, 2))
+    points = [
+        {
+            "year":     entry["depth_cm"],   # "year" re-used as depth_cm
+            "value":    round(entry["value"], 4),
+            "min":      round(entry["min"],   4),
+            "max":      round(entry["max"],   4),
+            "std":      round(entry["std"],   4),
+        }
+        for entry in profile
+    ]
 
     return {
-        "dataset": selected["name"],
-        "labels": labels,
-        "values": values,
-        "units": selected.get("units", ""),
-        "description": "Mean pixel value per depth band — Barcelona region (250 m)",
+        "dataset":      dataset_name,
+        "profile_type": "depth",
+        "x_label":      "Depth (cm)",
+        "units":        selected.get("units", ""),
+        "points":       points,
     }
-
-

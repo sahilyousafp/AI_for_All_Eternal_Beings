@@ -1,121 +1,131 @@
 """
-Dataset influence / correlation analysis.
+correlation.py — Real Pearson correlations between soil properties and
+                 climate / land-cover drivers.
 
-If a trained Random Forest model is available for the target dataset,
-signed feature importances are returned (magnitude = RF importance,
-sign = Pearson r direction).  Otherwise falls back to raw Pearson r.
+Uses the downloaded Spain rasters:
+  - Soil property (selected dataset, surface b0)
+  - CHIRPS Precipitation (2020 mean)
+  - MODIS Land Cover Type 1 (2020 mode)
 
-Frontend receives Chart.js-ready {labels, values, type, interpretation}.
+Rasters are resampled to the soil grid (nearest-neighbour via numpy slicing)
+before computing correlation. Only pixels valid in all layers are used.
 """
+
 import os
-import warnings
-
 import numpy as np
-import joblib
+from scipy import stats
 import rasterio
-from rasterio.errors import NotGeoreferencedWarning
+from rasterio.enums import Resampling
 
-SAVED_DIR = os.path.join(os.path.dirname(__file__), "saved_models")
-
-
-def _read_pixels(path: str, max_n: int = 3000) -> np.ndarray | None:
-    if not path or not os.path.isfile(path):
-        return None
-    try:
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", NotGeoreferencedWarning)
-            with rasterio.open(path) as src:
-                data = src.read(1, masked=True)
-        arr = data.compressed().astype(float)
-        if len(arr) == 0:
-            return None
-        if len(arr) > max_n:
-            step = max(1, len(arr) // max_n)
-            arr = arr[::step][:max_n]
-        return arr
-    except Exception:
-        return None
+from backend.ml_models.data_loader import (
+    get_soil_path, get_climate_path, get_lc_path, load_raster
+)
 
 
-def _pearson(a: np.ndarray, b: np.ndarray) -> float:
-    n = min(len(a), len(b))
-    if n < 2:
-        return 0.0
-    a, b = a[:n], b[:n]
-    if np.std(a) < 1e-6 or np.std(b) < 1e-6:
-        return 0.0
-    return float(np.corrcoef(a, b)[0, 1])
+def _resample_to_reference(src_path: str, ref_meta: dict) -> np.ndarray:
+    """
+    Resample src raster to match ref_meta's grid using bilinear resampling.
+    Returns a float32 array with nodata → NaN.
+    """
+    ref_h = ref_meta["height"]
+    ref_w = ref_meta["width"]
+    ref_transform = ref_meta["transform"]
+    ref_crs = ref_meta["crs"]
 
-
-def correlation_model(selected: dict) -> dict:
-    from backend.ml_models.utils import LOCAL_REGISTRY, DEPTH_ORDER
-
-    ds_name = selected.get("internal_name", "")
-    files = selected.get("local_files", {})
-    primary = next(
-        (files[b] for b in DEPTH_ORDER if b in files),
-        next(iter(files.values()), None),
-    )
-    ref_pixels = _read_pixels(primary)
-
-    # --- Pearson r for all other datasets ---
-    pearson_r: dict[str, float] = {}
-    for name, entry in LOCAL_REGISTRY.items():
-        if entry["display"] == selected["name"]:
-            continue
-        other_files = entry.get("local_files", {})
-        other_primary = next(
-            (other_files[b] for b in DEPTH_ORDER if b in other_files),
-            next(iter(other_files.values()), None),
+    with rasterio.open(src_path) as src:
+        from rasterio.warp import reproject, Resampling as RS
+        dest = np.full((ref_h, ref_w), np.nan, dtype=np.float32)
+        reproject(
+            source=rasterio.band(src, 1),
+            destination=dest,
+            src_transform=src.transform,
+            src_crs=src.crs,
+            dst_transform=ref_transform,
+            dst_crs=ref_crs,
+            resampling=RS.bilinear,
         )
-        other_pixels = _read_pixels(other_primary)
-        if ref_pixels is not None and other_pixels is not None:
-            pearson_r[entry["display"]] = round(_pearson(ref_pixels, other_pixels), 3)
+        nodata = src.nodata
+        if nodata is not None:
+            dest[dest == nodata] = np.nan
+    return dest
 
-    # --- RF feature importances (if model trained) ---
-    rf_path = os.path.join(SAVED_DIR, f"{ds_name}_rf.joblib")
-    if os.path.isfile(rf_path):
+
+def _pearson(x: np.ndarray, y: np.ndarray):
+    """Return (r, p_value) for two flat arrays, or (None, None) if too few points."""
+    mask = np.isfinite(x) & np.isfinite(y)
+    if mask.sum() < 10:
+        return None, None
+    r, p = stats.pearsonr(x[mask], y[mask])
+    return float(r), float(p)
+
+
+def correlation_model(selected):
+    dataset_name = selected["name"]
+
+    # --- Load reference (soil property, surface) ---
+    soil_path = get_soil_path(dataset_name, "b0")
+    try:
+        soil_arr, soil_meta = load_raster(soil_path)
+    except Exception as exc:
+        return {"dataset": dataset_name, "error": str(exc), "correlation": {}}
+
+    results      = {}
+    p_values     = {}
+
+    # --- Precipitation ---
+    precip_path = get_climate_path()
+    if os.path.exists(precip_path):
         try:
-            payload = joblib.load(rf_path)
-            rf_model = payload["model"]
-            feat_names: list[str] = payload["features"]
-            rf_step = rf_model.named_steps.get("rf")
-            if rf_step is not None:
-                importances = rf_step.feature_importances_
-                labels, values = [], []
-                for feat, imp in zip(feat_names, importances):
-                    r = pearson_r.get(feat, 0.0)
-                    signed = float(imp) * (1.0 if r >= 0 else -1.0)
-                    labels.append(feat)
-                    values.append(round(signed, 4))
-                # Sort by absolute value descending
-                pairs = sorted(zip(labels, values), key=lambda x: abs(x[1]), reverse=True)
-                labels, values = zip(*pairs) if pairs else ([], [])
-                return {
-                    "dataset": selected["name"],
-                    "labels": list(labels),
-                    "values": list(values),
-                    "type": "rf_importance_signed",
-                    "interpretation": (
-                        "Bar length = how strongly each dataset drives this one. "
-                        "Green (+) = increases together · Red (−) = inverse relationship."
-                    ),
-                }
+            precip_arr = _resample_to_reference(precip_path, soil_meta)
+            r, p = _pearson(soil_arr.ravel(), precip_arr.ravel())
+            if r is not None:
+                results["precipitation"]  = round(r, 4)
+                p_values["precipitation"] = round(p, 6)
         except Exception:
             pass
 
-    # Fall back to Pearson r
-    pairs = sorted(pearson_r.items(), key=lambda x: abs(x[1]), reverse=True)
-    return {
-        "dataset": selected["name"],
-        "labels": [p[0] for p in pairs],
-        "values": [p[1] for p in pairs],
-        "type": "pearson_r",
-        "interpretation": (
-            "Pearson correlation coefficient. "
-            "Green (+) = increases together · Red (−) = inverse relationship. "
-            "Train models for richer RF-based analysis."
-        ),
+    # --- Land Cover ---
+    lc_path = get_lc_path("LC_Type1")
+    if os.path.exists(lc_path):
+        try:
+            lc_arr = _resample_to_reference(lc_path, soil_meta)
+            r, p = _pearson(soil_arr.ravel(), lc_arr.ravel())
+            if r is not None:
+                results["landcover"]  = round(r, 4)
+                p_values["landcover"] = round(p, 6)
+        except Exception:
+            pass
+
+    # --- Cross-correlations with other soil properties ---
+    other_soil = {
+        "organic_carbon": "Organic Carbon",
+        "soil_ph":        "Soil pH",
+        "bulk_density":   "Bulk Density",
+        "sand_content":   "Sand Content",
+        "clay_content":   "Clay Content",
     }
 
+    for key, ds_name in other_soil.items():
+        # Skip self-correlation
+        if ds_name.lower() in dataset_name.lower():
+            continue
+        other_path = get_soil_path(ds_name, "b0")
+        if not os.path.exists(other_path):
+            continue
+        try:
+            other_arr, _ = load_raster(other_path)
+            # Both already on same grid
+            r, p = _pearson(soil_arr.ravel(), other_arr.ravel())
+            if r is not None:
+                results[key]  = round(r, 4)
+                p_values[key] = round(p, 6)
+        except Exception:
+            pass
 
+    return {
+        "dataset":     dataset_name,
+        "n_pixels":    int(np.sum(np.isfinite(soil_arr))),
+        "correlation": results,
+        "p_values":    p_values,
+        "note":        "Pearson r with co-located pixels. p < 0.05 = significant.",
+    }

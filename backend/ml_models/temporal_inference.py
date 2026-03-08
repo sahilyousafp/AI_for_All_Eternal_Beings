@@ -31,8 +31,8 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import PolynomialFeatures, StandardScaler
 
 from backend.ml_models.utils import (
-    TEMPORAL_REGISTRY, LOCAL_REGISTRY, DEPTH_ORDER, DEPTH_LABELS,
-    temporal_primary_band, primary_band, available_years,
+    TEMPORAL_REGISTRY, DEPTH_ORDER, DEPTH_LABELS,
+    temporal_primary_band, available_years,
 )
 
 SAVED_DIR = os.path.join(os.path.dirname(__file__), "saved_models")
@@ -206,46 +206,98 @@ def predict_year(dataset_name: str, target_year: int, data_years: list[int] | No
             "test_metrics":    None,
         }
 
-    # ── 5. Use depth-band trend (soil datasets) ────────────────────────────────
-    entry = LOCAL_REGISTRY.get(dataset_name)
-    if entry:
-        files = entry.get('local_files', {})
-        depth_cm = {"b0": 0, "b10": 10, "b30": 30, "b60": 60, "b100": 100, "b200": 200}
-        pts = []
-        for band, cm in depth_cm.items():
-            if band in files:
-                v = _read_mean(files[band])
-                if v is not None:
-                    pts.append((float(cm), v))
-        if len(pts) >= 3:
-            Xd = np.array([[x] for x, _ in pts])
-            yd = np.array([v for _, v in pts])
-            target_depth = float(max(0, target_year - 2025))
-            model = _fit_ridge_on_the_fly(Xd, yd)
-            pred  = float(model.predict([[target_depth]])[0])
-            lo, hi = _confidence_band(yd - model.predict(Xd), pred)
-            return {
-                "predicted_value": round(pred, 3),
-                "model":           "Ridge (depth-band proxy)",
-                "confidence_low":  round(lo, 3),
-                "confidence_high": round(hi, 3),
-                "year_range":      [2025, 2025 + 200],
-                "extrapolated":    True,
-                "test_metrics":    None,
-            }
-
-    # ── 6. Last resort: static mean ───────────────────────────────────────────
-    static_mean = None
-    if entry:
-        path = primary_band(entry)
-        static_mean = _read_mean(path)
-    val = static_mean or 0.0
+    # No valid temporal model exists for this dataset.
     return {
-        "predicted_value": round(val, 3),
-        "model":           "Static mean (no temporal model)",
-        "confidence_low":  round(val * 0.90, 3),
-        "confidence_high": round(val * 1.10, 3),
-        "year_range":      None,
+        "supported":       False,
+        "predicted_value": None,
+        "model":           None,
+        "confidence_low":  None,
+        "confidence_high": None,
+        "year_range":      year_range,
         "extrapolated":    True,
         "test_metrics":    None,
     }
+
+
+def predict_spatial_year(
+    dataset_name: str,
+    target_year: int,
+    lat_grid: "np.ndarray",
+    lon_grid: "np.ndarray",
+    ssp_scenario: str = "ssp245",
+) -> "np.ndarray | None":
+    """
+    Predict pixel values for a 2-D lat/lon grid at target_year using the
+    spatiotemporal XGBoost model trained by train_spatiotemporal().
+
+    Parameters
+    ----------
+    dataset_name : str
+        Name matching TEMPORAL_REGISTRY key (e.g. 'CHIRPS_Precipitation').
+    target_year : int
+        Calendar year to predict (e.g. 2045).
+    lat_grid, lon_grid : np.ndarray, shape (rows, cols)
+        Geographic coordinates of each grid cell.
+    ssp_scenario : str
+        One of 'ssp126', 'ssp245', 'ssp370', 'ssp585'. Determines climate deltas.
+
+    Returns
+    -------
+    np.ndarray of same shape as lat_grid, or None if model unavailable.
+    """
+    path = os.path.join(SAVED_DIR, f"{dataset_name}_spatiotemporal.joblib")
+    if not os.path.isfile(path):
+        return None
+
+    try:
+        bundle = joblib.load(path)
+        model  = bundle["model"]
+    except Exception:
+        return None
+
+    # SSP climate delta lookup (same table as train_spatiotemporal)
+    _SSP_DT = {
+        "ssp126": {2000: -0.2, 2025: 0.3, 2050: 1.0, 2075: 1.2, 2100: 1.3},
+        "ssp245": {2000: -0.2, 2025: 0.3, 2050: 1.5, 2075: 2.1, 2100: 2.7},
+        "ssp370": {2000: -0.2, 2025: 0.4, 2050: 1.8, 2075: 2.7, 2100: 3.6},
+        "ssp585": {2000: -0.2, 2025: 0.5, 2050: 2.4, 2075: 3.7, 2100: 5.0},
+    }
+    _SSP_DP = {
+        "ssp126": {2000: 0.0, 2025: -0.03, 2050: -0.05, 2100: -0.05},
+        "ssp245": {2000: 0.0, 2025: -0.07, 2050: -0.15, 2100: -0.20},
+        "ssp370": {2000: 0.0, 2025: -0.08, 2050: -0.18, 2100: -0.28},
+        "ssp585": {2000: 0.0, 2025: -0.10, 2050: -0.22, 2100: -0.35},
+    }
+
+    def _interp(table: dict, yr: int) -> float:
+        keys = sorted(table.keys())
+        if yr <= keys[0]:
+            return table[keys[0]]
+        if yr >= keys[-1]:
+            return table[keys[-1]]
+        for i in range(len(keys) - 1):
+            if keys[i] <= yr <= keys[i+1]:
+                t = (yr - keys[i]) / (keys[i+1] - keys[i])
+                return table[keys[i]] + t * (table[keys[i+1]] - table[keys[i]])
+        return 0.0
+
+    scen = ssp_scenario if ssp_scenario in _SSP_DT else "ssp245"
+    delta_T = _interp(_SSP_DT[scen], target_year)
+    delta_P = _interp(_SSP_DP[scen], target_year) * 580.0  # fraction → mm/yr
+
+    flat_lat = lat_grid.ravel()
+    flat_lon = lon_grid.ravel()
+    n = len(flat_lat)
+    X = np.column_stack([
+        np.full(n, float(target_year)),
+        flat_lat,
+        flat_lon,
+        np.full(n, delta_T),
+        np.full(n, delta_P),
+    ])
+
+    try:
+        preds = model.predict(X)
+        return preds.reshape(lat_grid.shape)
+    except Exception:
+        return None

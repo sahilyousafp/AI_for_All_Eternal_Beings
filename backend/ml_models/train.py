@@ -7,6 +7,7 @@ Models trained per dataset:
   {name}_rf.joblib             — RandomForestRegressor cross-dataset influence model
   {name}_temporal_ridge.joblib — Ridge on (year → spatial mean), requires ≥6 years
   {name}_temporal_mlp.joblib   — MLP  on (year → spatial mean), requires ≥6 years
+  {name}_spatiotemporal.joblib — XGBoost spatiotemporal (year, lat, lon, dT, dP) → value
 
 Run standalone:
   python -m backend.ml_models.train
@@ -26,14 +27,22 @@ from sklearn.preprocessing import PolynomialFeatures, StandardScaler
 
 from backend.ml_models.utils import DEPTH_ORDER, LOCAL_REGISTRY, TEMPORAL_REGISTRY
 
+from sklearn.model_selection import LeaveOneOut, cross_val_predict
+try:
+    from xgboost import XGBRegressor
+    _XGBOOST_AVAILABLE = True
+except ImportError:
+    _XGBOOST_AVAILABLE = False
+
 SAVED_DIR = os.path.join(os.path.dirname(__file__), "saved_models")
 
 # Depth band → depth in cm
 DEPTH_CM = {"b0": 0, "b10": 10, "b30": 30, "b60": 60, "b100": 100, "b200": 200}
 
 # Maximum pixels sampled per band to keep training fast
-_MAX_PER_BAND = 1000
-_MAX_CROSS = 2000  # pixels for cross-dataset RF model
+_MAX_PER_BAND = 5000
+_MAX_CROSS = 10000  # pixels for cross-dataset RF model
+_MAX_SPATIO = 5000   # pixels sampled per year for spatiotemporal model
 
 
 # ── Utility ──────────────────────────────────────────────────────────────────
@@ -53,6 +62,36 @@ def _read_pixels(path: str, max_n: int = _MAX_PER_BAND) -> np.ndarray | None:
             step = max(1, len(arr) // max_n)
             arr = arr[::step][:max_n]
         return arr
+    except Exception:
+        return None
+
+
+def _read_mean_pixels(path: str, max_n: int = _MAX_SPATIO) -> tuple[np.ndarray, np.ndarray, np.ndarray] | None:
+    """Read (values, lats, lons) arrays from a raster, sampling up to max_n pixels."""
+    if not path or not os.path.isfile(path):
+        return None
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", NotGeoreferencedWarning)
+            with rasterio.open(path) as src:
+                data = src.read(1, masked=True)
+                transform = src.transform
+        mask = ~np.ma.getmaskarray(data)
+        rows_idx, cols_idx = np.where(mask)
+        vals = data.data[rows_idx, cols_idx].astype(np.float64)
+        valid = np.isfinite(vals)
+        rows_idx, cols_idx, vals = rows_idx[valid], cols_idx[valid], vals[valid]
+        if len(vals) == 0:
+            return None
+        if len(vals) > max_n:
+            rng = np.random.default_rng(42)
+            idx = rng.choice(len(vals), max_n, replace=False)
+            rows_idx, cols_idx, vals = rows_idx[idx], cols_idx[idx], vals[idx]
+        # Convert pixel indices to geographic coordinates
+        xs, ys = rasterio.transform.xy(transform, rows_idx, cols_idx)
+        lons = np.array(xs, dtype=np.float64)
+        lats = np.array(ys, dtype=np.float64)
+        return vals, lats, lons
     except Exception:
         return None
 
@@ -230,6 +269,120 @@ def _make_mlp_pipeline(n_train: int) -> Pipeline:
     ])
 
 
+def train_spatiotemporal(name: str, ssp_scenario: str = "ssp245") -> dict:
+    """
+    Build (year, lat, lon, delta_T, delta_P) -> pixel_value training set from
+    all years in TEMPORAL_REGISTRY, then train XGBoost.
+
+    delta_T, delta_P derived from SSP scenario benchmarks (Barcelona baseline:
+    T=16.2degC, P=580mm/yr). No new data download required.
+
+    Uses LeaveOneOut CV on annual means for honest temporal generalization metric.
+    Saves: {name}_spatiotemporal.joblib
+    """
+    if not _XGBOOST_AVAILABLE:
+        return {f"{name}_spatiotemporal": "skipped — xgboost not installed"}
+
+    year_data = TEMPORAL_REGISTRY.get(name, {})
+    if len(year_data) < _MIN_YEARS:
+        return {f"{name}_spatiotemporal": f"skipped — only {len(year_data)} years"}
+
+    # SSP2-4.5 benchmark deltas (IPCC AR6, Mediterranean region)
+    # Barcelona baseline: T_mean=16.2C, precip=580mm/yr
+    _SSP245_DT = {2000: -0.2, 2010: 0.0, 2020: 0.2, 2025: 0.3,
+                  2030: 0.5, 2040: 0.8, 2050: 1.5, 2060: 1.9,
+                  2070: 2.2, 2080: 2.4, 2090: 2.6, 2100: 2.7}
+    _SSP245_DP = {2000: 0.0, 2010: -0.02, 2020: -0.05, 2025: -0.07,
+                  2030: -0.09, 2040: -0.11, 2050: -0.15, 2060: -0.17,
+                  2070: -0.18, 2080: -0.19, 2090: -0.19, 2100: -0.20}
+
+    def _get_climate_deltas(yr: int):
+        yrs = sorted(_SSP245_DT.keys())
+        if yr <= yrs[0]:
+            return _SSP245_DT[yrs[0]], _SSP245_DP[yrs[0]]
+        if yr >= yrs[-1]:
+            return _SSP245_DT[yrs[-1]], _SSP245_DP[yrs[-1]]
+        for i in range(len(yrs) - 1):
+            if yrs[i] <= yr <= yrs[i+1]:
+                t = (yr - yrs[i]) / (yrs[i+1] - yrs[i])
+                dt = _SSP245_DT[yrs[i]] + t * (_SSP245_DT[yrs[i+1]] - _SSP245_DT[yrs[i]])
+                dp = _SSP245_DP[yrs[i]] + t * (_SSP245_DP[yrs[i+1]] - _SSP245_DP[yrs[i]])
+                return dt, dp
+        return 0.0, 0.0
+
+    rows_X, rows_y = [], []
+    annual_means = {}
+
+    for yr in sorted(year_data.keys()):
+        path = next(iter(year_data[yr].values()), None)
+        result = _read_mean_pixels(path, max_n=_MAX_SPATIO)
+        if result is None:
+            continue
+        vals, lats, lons = result
+        dt, dp = _get_climate_deltas(yr)
+        delta_T = dt                    # degC above baseline
+        delta_P = dp * 580.0           # mm/yr change from baseline
+        n = len(vals)
+        yr_col  = np.full(n, float(yr))
+        dT_col  = np.full(n, delta_T)
+        dP_col  = np.full(n, delta_P)
+        rows_X.append(np.column_stack([yr_col, lats, lons, dT_col, dP_col]))
+        rows_y.append(vals)
+        annual_means[yr] = float(np.mean(vals))
+
+    if len(rows_X) < _MIN_YEARS:
+        return {f"{name}_spatiotemporal": "skipped — insufficient readable years"}
+
+    X = np.vstack(rows_X)
+    y = np.concatenate(rows_y)
+
+    print(f"  Spatiotemporal training set: {len(X):,} observations from {len(rows_X)} years")
+
+    model = XGBRegressor(
+        n_estimators=300, max_depth=6, learning_rate=0.05,
+        subsample=0.8, colsample_bytree=0.8,
+        random_state=42, n_jobs=-1, tree_method="hist",
+        verbosity=0,
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        model.fit(X, y)
+
+    # LOO-CV on annual means for honest temporal metric
+    ann_yrs = sorted(annual_means.keys())
+    if len(ann_yrs) >= _MIN_YEARS:
+        ann_X = np.array([[float(yr), 41.4, 2.15,
+                           _get_climate_deltas(yr)[0],
+                           _get_climate_deltas(yr)[1] * 580.0]
+                          for yr in ann_yrs])
+        ann_y = np.array([annual_means[yr] for yr in ann_yrs])
+        loo_model = XGBRegressor(n_estimators=100, max_depth=4,
+                                  random_state=42, n_jobs=-1,
+                                  tree_method="hist", verbosity=0)
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+            loo_preds = cross_val_predict(loo_model, ann_X, ann_y, cv=LeaveOneOut())
+            metrics = _regression_metrics(ann_y, loo_preds)
+            print(f"  LOO-CV annual means: RMSE={metrics['rmse']:.4f}  R²={metrics['r2']:.4f}")
+        except Exception as exc:
+            metrics = {"rmse": None, "r2": None}
+            print(f"  LOO-CV failed: {exc}")
+    else:
+        metrics = {"rmse": None, "r2": None}
+
+    out_path = os.path.join(SAVED_DIR, f"{name}_spatiotemporal.joblib")
+    joblib.dump({
+        "model": model,
+        "features": ["year", "lat", "lon", "delta_T_degC", "delta_P_mm"],
+        "n_train": len(X),
+        "n_years": len(rows_X),
+        "loo_metrics": metrics,
+    }, out_path)
+    print(f"  [OK] Spatiotemporal XGBoost -> {os.path.basename(out_path)}")
+    return {f"{name}_spatiotemporal": f"saved  n={len(X):,}  loo_r2={metrics['r2']}"}
+
+
 def train_temporal_models(name: str) -> dict:
     """
     Train Ridge and MLP on (year → spatial_mean) series for a temporal dataset.
@@ -327,6 +480,10 @@ def train_all() -> dict:
         # 4. Temporal models — Ridge, MLP, RF on (year → value) with train/test split
         temporal_log = train_temporal_models(name)
         log.update(temporal_log)
+
+        # 5. Spatiotemporal XGBoost — (year, lat, lon, dT, dP) → pixel value
+        spatio_log = train_spatiotemporal(name)
+        log.update(spatio_log)
 
     return log
 

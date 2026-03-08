@@ -23,19 +23,35 @@ const GEE_PALETTES = {
 
 // ── Percentile display range ─────────────────────────────────────────────────
 function computeDisplayRange(gr) {
+  // Return cached result — iterating all pixels is expensive, do it only once
+  if (gr._displayRange) return gr._displayRange;
+
   const noData = gr.noDataValue;
+  const isNoData = (v) =>
+    v == null || !isFinite(v) ||
+    (noData != null && Math.abs(v - noData) <= Math.abs(noData) * 1e-5 + 1e-3);
+
   const vals = [];
   for (const row of (gr.values?.[0] ?? [])) {
     for (const v of row) {
-      if (v != null && !isNaN(v) && v !== noData) vals.push(v);
+      if (!isNoData(v)) vals.push(v);
     }
   }
-  if (!vals.length) return { min: gr.mins[0], max: gr.maxs[0] };
+  if (!vals.length) {
+    return (gr._displayRange = { min: gr.mins?.[0] ?? 0, max: gr.maxs?.[0] ?? 1, noDataThreshold: null });
+  }
   vals.sort((a, b) => a - b);
-  return {
-    min: vals[Math.floor(vals.length * 0.02)],
-    max: vals[Math.floor(vals.length * 0.98)],
-  };
+  const p02 = vals[Math.floor(vals.length * 0.02)];
+  const p90 = vals[Math.floor(vals.length * 0.90)];
+  const p98 = vals[Math.floor(vals.length * 0.98)];
+  // If there is a large gap between p90 and p98, the high values are an
+  // undeclared nodata sentinel (e.g. 255 in a uint8 raster with valid range 1–12).
+  const hasOutlier = p90 > 0 && p98 > p90 * 5;
+  return (gr._displayRange = {
+    min: p02,
+    max: hasOutlier ? p90 : p98,
+    noDataThreshold: hasOutlier ? p90 : null,  // values >= this are treated as nodata
+  });
 }
 
 // ── Colour helpers ───────────────────────────────────────────────────────────
@@ -211,7 +227,7 @@ async function visualizeGEEDataset(datasetName, year = null) {
       if (!tifRes.ok) throw new Error(`HTTP ${tifRes.status}`);
       const gr  = await parseGeoraster(await tifRes.arrayBuffer());
 
-      const { min, max } = computeDisplayRange(gr);
+      const { min, max, noDataThreshold } = computeDisplayRange(gr);
       const range = (max - min) || 1;
       const key   = data.internal_name || (datasetName || '').replace(/ /g, '_');
       gr._datasetKey = key;   // tag for pixel popup
@@ -220,8 +236,10 @@ async function visualizeGEEDataset(datasetName, year = null) {
       if (key === 'MODIS_Land_Cover') {
         currentLayer = new GeoRasterLayer({
           georaster: gr, opacity: 0.85, resolution: 128,
+          noDataValue: gr.noDataValue,
           pixelValuesToColorFn: ([v]) => {
-            if (v == null || isNaN(v) || v === gr.noDataValue) return null;
+            if (v == null || !isFinite(v)) return null;
+            if (noDataThreshold != null && v >= noDataThreshold) return null;
             return MODIS_COLOURS[Math.round(v) % MODIS_COLOURS.length] ?? '#555';
           }
         });
@@ -229,8 +247,10 @@ async function visualizeGEEDataset(datasetName, year = null) {
         const ramp = GEE_PALETTES[key] ?? GEE_PALETTES._soil;
         currentLayer = new GeoRasterLayer({
           georaster: gr, opacity: 0.85, resolution: 128,
+          noDataValue: gr.noDataValue,
           pixelValuesToColorFn: ([v]) => {
-            if (v == null || isNaN(v) || v === gr.noDataValue) return null;
+            if (v == null || !isFinite(v)) return null;
+            if (noDataThreshold != null && v >= noDataThreshold) return null;
             return lerp(ramp, (v - min) / range);
           }
         });
@@ -265,7 +285,7 @@ async function visualizeLocalBand(fileInfo) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const gr  = await parseGeoraster(await res.arrayBuffer());
 
-    const { min, max } = computeDisplayRange(gr);
+    const { min, max, noDataThreshold } = computeDisplayRange(gr);
     const range = (max - min) || 1;
     const key   = (fileInfo.dataset || '').replace(/ /g, '_');
     gr._datasetKey = key;   // tag for pixel popup
@@ -275,8 +295,10 @@ async function visualizeLocalBand(fileInfo) {
     if (key === 'MODIS_Land_Cover') {
       layer = new GeoRasterLayer({
         georaster: gr, opacity: 0.85, resolution: 128,
+        noDataValue: gr.noDataValue,
         pixelValuesToColorFn: ([v]) => {
-          if (v == null || isNaN(v) || v === gr.noDataValue) return null;
+          if (v == null || !isFinite(v)) return null;
+          if (noDataThreshold != null && v >= noDataThreshold) return null;
           return MODIS_COLOURS[Math.round(v) % MODIS_COLOURS.length] ?? '#555';
         }
       });
@@ -284,8 +306,10 @@ async function visualizeLocalBand(fileInfo) {
       const ramp = GEE_PALETTES[key] ?? GEE_PALETTES._soil;
       layer = new GeoRasterLayer({
         georaster: gr, opacity: 0.85, resolution: 128,
+        noDataValue: gr.noDataValue,
         pixelValuesToColorFn: ([v]) => {
-          if (v == null || isNaN(v) || v === gr.noDataValue) return null;
+          if (v == null || !isFinite(v)) return null;
+          if (noDataThreshold != null && v >= noDataThreshold) return null;
           return lerp(ramp, (v - min) / range);
         }
       });
@@ -332,14 +356,16 @@ async function visualizePredictedMap(internalName, displayName, year, modelType)
     gr._datasetKey = key;
     _currentGr = gr;
 
-    const { min, max } = computeDisplayRange(gr);
+    const { min, max, noDataThreshold } = computeDisplayRange(gr);
     const range = (max - min) || 1;
 
     if (key === 'MODIS_Land_Cover') {
       currentLayer = new GeoRasterLayer({
         georaster: gr, opacity: 0.85, resolution: 128,
+        noDataValue: gr.noDataValue,
         pixelValuesToColorFn: ([v]) => {
-          if (v == null || isNaN(v) || v === gr.noDataValue) return null;
+          if (v == null || !isFinite(v)) return null;
+          if (noDataThreshold != null && v >= noDataThreshold) return null;
           return MODIS_COLOURS[Math.round(v) % MODIS_COLOURS.length] ?? '#555';
         }
       });
@@ -347,8 +373,10 @@ async function visualizePredictedMap(internalName, displayName, year, modelType)
       const ramp = GEE_PALETTES[key] ?? GEE_PALETTES._soil;
       currentLayer = new GeoRasterLayer({
         georaster: gr, opacity: 0.85, resolution: 128,
+        noDataValue: gr.noDataValue,
         pixelValuesToColorFn: ([v]) => {
-          if (v == null || isNaN(v) || v === gr.noDataValue) return null;
+          if (v == null || !isFinite(v)) return null;
+          if (noDataThreshold != null && v >= noDataThreshold) return null;
           return lerp(ramp, (v - min) / range);
         }
       });

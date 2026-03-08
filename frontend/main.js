@@ -90,46 +90,66 @@ async function _fetchDatasetYears() {
   } catch { /* offline */ }
 }
 
+// Track whether the currently selected dataset has real temporal data.
+let _currentDatasetIsTemporal = false;
+
 function updateYearSliderForDataset(displayName) {
-  const meta = datasetMetadata.find(d => d.name === displayName);
+  const meta  = datasetMetadata.find(d => d.name === displayName);
+  const group = document.getElementById('yearSliderGroup');
   if (!meta) return;
+
   const name  = meta.internal_name || '';
   const years = _datasetYears[name] || meta.available_years || [];
 
   if (years.length >= 2) {
-    const minY = Math.min(...years);
-    const maxY = Math.max(...years);
+    // Temporal dataset — show slider clamped to real data range + 10-year extrapolation
+    _currentDatasetIsTemporal = true;
+    if (group) group.style.display = '';
+    const minY   = Math.min(...years);
+    const maxY   = Math.max(...years);
+    const extMax = maxY + 10;
     yearSlider.min   = minY;
-    yearSlider.max   = maxY + 50;     // allow up to 50 years beyond last data for ML inference
-    yearSlider.value = Math.min(parseInt(yearSlider.value, 10) || maxY, maxY);
+    yearSlider.max   = extMax;
+    yearSlider.value = Math.min(parseInt(yearSlider.value, 10) || maxY, extMax);
     yearValue.textContent = yearSlider.value;
-    _updateYearLabel(years, minY, maxY);
+    _updateYearLabel(minY, maxY, extMax);
   } else {
-    // Static dataset (soil): slider represents ML-projected year (no real temporal data)
-    yearSlider.min   = 2000;
-    yearSlider.max   = 2200;
-    yearSlider.value = Math.max(parseInt(yearSlider.value, 10) || 2020, 2000);
-    yearValue.textContent = yearSlider.value;
-    _updateYearLabel([], 2000, 2200);
+    // Static dataset (soil) — no valid temporal model, hide the year slider entirely
+    _currentDatasetIsTemporal = false;
+    if (group) group.style.display = 'none';
   }
+
+  _updateModelTypeForDataset(_currentDatasetIsTemporal);
 }
 
-function _updateYearLabel(availableYears, min, max) {
+function _updateYearLabel(min, max, extMax) {
   const label = document.getElementById('yearSliderLabel');
   if (!label) return;
-  if (availableYears.length >= 2) {
-    label.textContent = `Real data: ${min}–${max}  ·  ML inference beyond`;
-    label.style.color = 'var(--muted)';
-  } else {
-    label.textContent = 'Static dataset — ML inference used for all years';
-    label.style.color = 'var(--muted)';
+  label.textContent = `Real data: ${min}–${max}  ·  ML extrapolation: ${max + 1}–${extMax}`;
+  label.style.color = 'var(--muted)';
+}
+
+/**
+ * Show/hide temporal model options based on whether the dataset has temporal data.
+ * Ridge/MLP temporal models are only valid for datasets with multi-year downloads.
+ */
+function _updateModelTypeForDataset(isTemporal) {
+  if (!modelTypeSelect) return;
+  modelTypeSelect.querySelectorAll('.temporal-only').forEach(opt => {
+    opt.disabled = !isTemporal;
+    opt.hidden   = !isTemporal;
+  });
+  // Revert to 'auto' if a now-hidden temporal option is selected
+  const cur = modelTypeSelect.value;
+  if (!isTemporal && (cur === 'temporal_ridge' || cur === 'temporal_mlp')) {
+    modelTypeSelect.value = 'auto';
   }
 }
 
 // ── Infer and visualize: check if year has real data, else call ML ─────────────
 
 async function inferAndVisualize(displayName, year) {
-  if (!displayName) return;
+  if (!displayName || !_currentDatasetIsTemporal) return;
   const mapStatus = document.getElementById('pred-map-status');
 
   try {
@@ -138,10 +158,14 @@ async function inferAndVisualize(displayName, year) {
     const data = await res.json();
 
     if (data.has_data) {
-      // Real GeoTIFF exists for this year — visualize it
+      // Real GeoTIFF exists for this year — visualize it directly
       if (window.visualizeGEEDataset) window.visualizeGEEDataset(displayName, year);
+    } else if (data.supported === false) {
+      // Backend has no valid model for this dataset — just show base map, no overlay
+      if (window.visualizeGEEDataset) window.visualizeGEEDataset(displayName, null);
+      if (mapStatus) mapStatus.textContent = '';
     } else {
-      // No real data — show last available year on map + ML prediction overlay
+      // No real data for this year but a trained ML model exists — show overlay
       const fallbackYear = data.available_years?.length
         ? Math.max(...data.available_years)
         : null;
@@ -164,7 +188,6 @@ async function inferAndVisualize(displayName, year) {
     }
   } catch (err) {
     console.error('inferAndVisualize:', err);
-    // Graceful fallback: just show the map without inference overlay
     if (window.visualizeGEEDataset) window.visualizeGEEDataset(displayName, null);
   }
 }
@@ -202,12 +225,9 @@ function updateLocalBandVisibility() {
 function attachEventListeners() {
   yearSlider.addEventListener('input', (event) => {
     yearValue.textContent = event.target.value;
-    clearTimeout(yearSlider._debounce);
-    yearSlider._debounce = setTimeout(() => {
-      if (localBandSelect.value === 'live') {
-        inferAndVisualize(datasetSelect.value, parseInt(event.target.value, 10));
-      }
-    }, 600);
+    if (localBandSelect.value === 'live') {
+      inferAndVisualize(datasetSelect.value, parseInt(event.target.value, 10));
+    }
   });
 
   datasetSelect.addEventListener('change', () => {
@@ -217,6 +237,9 @@ function attachEventListeners() {
     updateYearSliderForDataset(datasetSelect.value);
     showChartPanel(datasetSelect.value);
     loadActiveChart();
+    if (window.visualizeGEEDataset) {
+      window.visualizeGEEDataset(datasetSelect.value);
+    }
   });
 
   visualizeBtn.addEventListener('click', () => {
@@ -234,9 +257,12 @@ function attachEventListeners() {
       if (window.visualizePredictedMap) {
         window.visualizePredictedMap(internalName, datasetSelect.value, parseInt(yearSlider.value, 10), modelType);
       }
-    } else {
+    } else if (_currentDatasetIsTemporal) {
       // Auto: use real data if available, otherwise ML overlay
       inferAndVisualize(datasetSelect.value, parseInt(yearSlider.value, 10));
+    } else {
+      // Static dataset (soil) — just show the base raster, no year inference
+      if (window.visualizeGEEDataset) window.visualizeGEEDataset(datasetSelect.value);
     }
     updateStatistics();
   });

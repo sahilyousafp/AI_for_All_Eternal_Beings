@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Soil Futures — Interactive Exhibition</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+  <style>
+    :root {
+      --bg: #0a0a0a; --surface: #141414; --border: #2a2a2a;
+      --text: #e8e8e8; --muted: #888; --accent: #84CC16;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif; background: var(--bg);
+      color: var(--text); min-height: 100vh;
+    }
+    header {
+      padding: 1.5rem 2rem; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 1rem;
+    }
+    header h1 { font-size: 1.4rem; font-weight: 600; }
+    header p { font-size: 0.85rem; color: var(--muted); }
+
+    .phase { display: none; padding: 2rem; max-width: 1200px; margin: 0 auto; }
+    .phase.active { display: block; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1.5rem; cursor: pointer;
+      transition: border-color 0.2s, transform 0.1s;
+    }
+    .card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .card.selected { border-color: var(--accent); background: rgba(132,204,22,0.08); }
+    .card .icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+    .card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.4rem; }
+    .card p { font-size: 0.82rem; color: var(--muted); line-height: 1.5; }
+
+    .btn {
+      background: var(--accent); color: #000; border: none;
+      padding: 0.75rem 2rem; border-radius: 8px;
+      font-size: 0.95rem; font-weight: 600; cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-outline {
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    #phase-nav {
+      display: flex; gap: 0.5rem; margin-bottom: 2rem; flex-wrap: wrap;
+    }
+    .phase-step {
+      padding: 0.35rem 1rem; border-radius: 20px;
+      font-size: 0.8rem; font-weight: 500;
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .phase-step.done { color: var(--accent); border-color: var(--accent); }
+    .phase-step.current { background: var(--accent); color: #000; border-color: var(--accent); }
+
+    /* Phase 3: simulation UI */
+    #scenario-bar {
+      display: flex; gap: 1rem; flex-wrap: wrap;
+      margin-bottom: 1.5rem; align-items: center;
+    }
+    #years-slider { accent-color: var(--accent); width: 180px; }
+
+    #sim-output { display: none; }
+    #sim-output.visible { display: block; }
+
+    .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem; }
+    .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; }
+    .chart-card h4 { font-size: 0.85rem; color: var(--muted); margin-bottom: 0.75rem; font-weight: 500; }
+
+    canvas { width: 100% !important; }
+
+    .confidence-bar {
+      display: flex; border-radius: 6px; overflow: hidden;
+      height: 8px; margin: 0.5rem 0;
+    }
+    .conf-green  { background: #22c55e; }
+    .conf-amber  { background: #f59e0b; }
+    .conf-red    { background: #ef4444; }
+
+    .events-list { max-height: 180px; overflow-y: auto; }
+    .event-item {
+      padding: 0.4rem 0; border-bottom: 1px solid var(--border);
+      font-size: 0.8rem; display: flex; gap: 0.5rem;
+    }
+    .event-item .yr { color: var(--accent); font-weight: 600; min-width: 42px; }
+    .severity-high { color: #ef4444; }
+    .severity-low  { color: #f59e0b; }
+
+    #loading-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7); z-index: 100;
+      align-items: center; justify-content: center; flex-direction: column; gap: 1rem;
+    }
+    #loading-overlay.visible { display: flex; }
+    .spinner {
+      width: 48px; height: 48px;
+      border: 4px solid var(--border); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .spatial-grid {
+      display: grid; gap: 2px; border-radius: 8px; overflow: hidden;
+    }
+    .spatial-cell { width: 100%; aspect-ratio: 1; border-radius: 1px; }
+
+    h2 { font-size: 1.3rem; font-weight: 600; margin-bottom: 0.5rem; }
+    .subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 1.5rem; }
+
+    footer { text-align: center; padding: 2rem; color: var(--muted); font-size: 0.78rem; border-top: 1px solid var(--border); margin-top: 3rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Soil Futures</h1>
+      <p>Interactive exhibition — what happens to soil under different choices?</p>
+    </div>
+  </header>
+
+  <div id="loading-overlay">
+    <div class="spinner"></div>
+    <p id="loading-msg">Running simulation…</p>
+  </div>
+
+  <!-- Phase 1: Choose philosophy -->
+  <div id="phase-1" class="phase active">
+    <div id="phase-nav">
+      <span class="phase-step current">1 · Management</span>
+      <span class="phase-step">2 · Climate</span>
+      <span class="phase-step">3 · Simulate</span>
+    </div>
+    <h2>Choose a land management approach</h2>
+    <p class="subtitle">How humans manage this land determines everything. Pick a philosophy.</p>
+    <div id="philosophies-grid" class="grid-2"></div>
+    <div style="margin-top:1.5rem; display:flex; gap:1rem;">
+      <button class="btn" id="btn-to-climate" disabled>Next: Choose climate →</button>
+    </div>
+  </div>
+
+  <!-- Phase 2: Choose climate scenario -->
+  <div id="phase-2" class="phase">
+    <div id="phase-nav-2">
+      <span class="phase-step done">1 · Management ✓</span>
+      <span class="phase-step current">2 · Climate</span>
+      <span class="phase-step">3 · Simulate</span>
+    </div>
+    <h2>Choose a climate future</h2>
+    <p class="subtitle">Based on IPCC AR6. Which world are we living in by 2100?</p>
+    <div id="scenarios-grid" class="grid-2"></div>
+    <div style="margin-top:1.5rem; display:flex; gap:1rem;">
+      <button class="btn btn-outline" onclick="showPhase(1)">← Back</button>
+      <button class="btn" id="btn-to-sim" disabled>Next: Simulate →</button>
+    </div>
+  </div>
+
+  <!-- Phase 3: Simulate & Results -->
+  <div id="phase-3" class="phase">
+    <div id="phase-nav-3">
+      <span class="phase-step done">1 · Management ✓</span>
+      <span class="phase-step done">2 · Climate ✓</span>
+      <span class="phase-step current">3 · Simulate</span>
+    </div>
+    <h2 id="sim-title">Simulation</h2>
+    <p class="subtitle" id="sim-subtitle">Configure and run the soil evolution model.</p>
+
+    <div id="scenario-bar">
+      <label style="font-size:0.85rem; color:var(--muted);">
+        Time horizon:
+        <input type="range" id="years-slider" min="10" max="100" step="10" value="50"
+               oninput="document.getElementById('years-val').textContent=this.value">
+        <span id="years-val">50</span> years
+      </label>
+      <label style="font-size:0.85rem; color:var(--muted);">
+        Ensemble:
+        <select id="ensemble-select" style="background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px;">
+          <option value="5">5 members</option>
+          <option value="10" selected>10 members</option>
+        </select>
+      </label>
+      <button class="btn btn-outline" onclick="showPhase(2)">← Back</button>
+      <button class="btn" id="btn-run" onclick="runSimulation()">Run Simulation ▶</button>
+    </div>
+
+    <div id="sim-output">
+      <div class="charts-grid">
+        <div class="chart-card">
+          <h4>Soil Organic Carbon (g/kg)</h4>
+          <canvas id="chart-soc"></canvas>
+        </div>
+        <div class="chart-card">
+          <h4>Erosion Rate (t/ha/yr)</h4>
+          <canvas id="chart-erosion"></canvas>
+        </div>
+        <div class="chart-card">
+          <h4>Biodiversity Index (0–1)</h4>
+          <canvas id="chart-bio"></canvas>
+        </div>
+        <div class="chart-card">
+          <h4>Canopy Cover (%)</h4>
+          <canvas id="chart-canopy"></canvas>
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-top:1.5rem;">
+        <div class="card" style="cursor:default;">
+          <h4 style="margin-bottom:0.75rem; font-size:0.85rem; color:var(--muted);">Prediction Confidence</h4>
+          <div class="confidence-bar" id="conf-bar"></div>
+          <p style="font-size:0.78rem; color:var(--muted); margin-top:0.4rem;" id="conf-label"></p>
+        </div>
+        <div class="card" style="cursor:default;">
+          <h4 style="margin-bottom:0.5rem; font-size:0.85rem; color:var(--muted);">Disturbance Events</h4>
+          <div class="events-list" id="events-list"></div>
+        </div>
+      </div>
+
+      <div class="card" style="cursor:default; margin-top:1.5rem;">
+        <h4 style="margin-bottom:0.75rem; font-size:0.85rem; color:var(--muted);">Final Year Soil Carbon Map (20×20 grid)</h4>
+        <div id="spatial-soc" class="spatial-grid" style="grid-template-columns:repeat(20,1fr); max-width:400px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Data: SoilGrids (ISRIC) · CHIRPS · MODIS · IPCC AR6 · RothC (Coleman &amp; Jenkinson 1996) · RUSLE
+    <br>Barcelona region, Spain · 2.5km resolution · 10-member ensemble
+  </footer>
+
+  <script src="simulation.js"></script>
+  <script src="renderer.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

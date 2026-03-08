@@ -499,16 +499,14 @@
         <div class="control-group">
           <label>Prediction Model</label>
           <select id="modelTypeSelect">
-            <option value="auto">Auto (real data or depth proxy)</option>
+            <option value="auto">Auto (real data or best ML)</option>
             <option value="rf">🌲 Random Forest (Influence)</option>
-            <option value="ridge">📐 Ridge Regression (Depth Profile)</option>
-            <option value="mlp">🧠 Neural Network (MLP)</option>
-            <option value="temporal_ridge">📈 Temporal Ridge (year trend)</option>
-            <option value="temporal_mlp">📈 Temporal MLP (year trend)</option>
+            <option value="temporal_ridge" class="temporal-only">📈 Temporal Ridge (year trend)</option>
+            <option value="temporal_mlp" class="temporal-only">📈 Temporal MLP (year trend)</option>
           </select>
         </div>
 
-        <div class="control-group">
+        <div class="control-group" id="yearSliderGroup">
           <label>Year to Visualise</label>
           <input type="range" id="yearSlider" min="2000" max="2200" value="2020" />
           <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">

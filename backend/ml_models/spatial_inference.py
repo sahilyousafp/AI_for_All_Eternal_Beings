@@ -243,10 +243,6 @@ def predict_map_raster(dataset_name: str, year: int, model_type: str) -> bytes |
         # Fallback: return raw primary-band data if RF fails
         return out if out else _write_raster(data, meta, nd)
 
-    elif model_type in ("ridge", "mlp"):
-        out = _predict_depth_model(dataset_name, model_type, year, data, nodata, meta, actual_mean)
-        return out if out else _write_raster(data, meta, nd)
-
     elif model_type in ("temporal_ridge", "temporal_mlp"):
         out = _predict_temporal_model(dataset_name, model_type, year, data, nodata, meta, actual_mean)
         return out if out else _write_raster(data, meta, nd)

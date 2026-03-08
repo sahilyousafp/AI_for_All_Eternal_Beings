@@ -66,7 +66,10 @@ function sampleGeoRaster(gr, lat, lng) {
   const col = Math.min(width  - 1, Math.floor((lng - xmin) / (xmax - xmin) * width));
   const row = Math.min(height - 1, Math.floor((ymax - lat)  / (ymax - ymin) * height));
   const v = values?.[0]?.[row]?.[col];
-  if (v == null || isNaN(v) || v === noDataValue) return null;
+  if (v == null || !isFinite(v)) return null;
+  if (noDataValue != null && Math.abs(v - noDataValue) <= Math.abs(noDataValue) * 1e-5 + 1e-3) return null;
+  const threshold = gr._displayRange?.noDataThreshold;
+  if (threshold != null && v >= threshold) return null;
   return v;
 }
 
@@ -77,19 +80,30 @@ function sampleGeoRaster(gr, lat, lng) {
  * is tiny compared to the theoretical uint8 range (1–255).
  */
 function computeDisplayRange(gr) {
+  if (gr._displayRange) return gr._displayRange;
   const noData = gr.noDataValue;
+  const isNoData = (v) =>
+    v == null || !isFinite(v) ||
+    (noData != null && Math.abs(v - noData) <= Math.abs(noData) * 1e-5 + 1e-3);
   const vals = [];
   for (const row of (gr.values?.[0] ?? [])) {
     for (const v of row) {
-      if (v != null && !isNaN(v) && v !== noData) vals.push(v);
+      if (!isNoData(v)) vals.push(v);
     }
   }
-  if (!vals.length) return { min: gr.mins[0], max: gr.maxs[0] };
+  if (!vals.length) {
+    return (gr._displayRange = { min: gr.mins?.[0] ?? 0, max: gr.maxs?.[0] ?? 1, noDataThreshold: null });
+  }
   vals.sort((a, b) => a - b);
-  return {
-    min: vals[Math.floor(vals.length * 0.02)],
-    max: vals[Math.floor(vals.length * 0.98)],
-  };
+  const p02 = vals[Math.floor(vals.length * 0.02)];
+  const p90 = vals[Math.floor(vals.length * 0.90)];
+  const p98 = vals[Math.floor(vals.length * 0.98)];
+  const hasOutlier = p90 > 0 && p98 > p90 * 5;
+  return (gr._displayRange = {
+    min: p02,
+    max: hasOutlier ? p90 : p98,
+    noDataThreshold: hasOutlier ? p90 : null,
+  });
 }
 
 // ── Colour helpers ───────────────────────────────────────────────────────────
@@ -123,7 +137,7 @@ function makePixelFn(dataset, typology, georaster) {
 
   if (key === 'MODIS_Land_Cover') {
     return ([v]) => {
-      if (v == null || isNaN(v) || v === noData) return null;
+      if (v == null || !isFinite(v)) return null;
       return MODIS_COLOURS[Math.round(v) % MODIS_COLOURS.length] ?? '#555';
     };
   }
@@ -131,10 +145,11 @@ function makePixelFn(dataset, typology, georaster) {
   const ramp = PALETTES[key] ?? PALETTES[`_${typology}`] ?? PALETTES._soil;
   // Use percentile stretch so the full color ramp is used across the actual
   // data range in the tile (not the theoretical 1–255 uint8 range).
-  const { min, max } = computeDisplayRange(georaster);
+  const { min, max, noDataThreshold } = computeDisplayRange(georaster);
   const range = (max - min) || 1;
   return ([v]) => {
-    if (v == null || isNaN(v) || v === noData) return null;
+    if (v == null || !isFinite(v)) return null;
+    if (noDataThreshold != null && v >= noDataThreshold) return null;
     return lerp(ramp, (v - min) / range);
   };
 }
@@ -359,6 +374,7 @@ async function toggleLayer(typology, fileInfo, itemEl) {
     const layer = new GeoRasterLayer({
       georaster: gr,
       opacity: 0.8,
+      noDataValue: gr.noDataValue,
       pixelValuesToColorFn: makePixelFn(fileInfo.dataset, typology, gr),
       resolution: 128,
     });

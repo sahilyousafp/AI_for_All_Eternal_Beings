@@ -90,11 +90,15 @@ def biology_step(
             myc  *= 0.50
             ew   *= 0.70
 
-    # Drought: progressive stress on soil fauna
-    if drought_yr >= 2:
-        drought_factor = np.clip(moisture_ratio * 2.0, 0.40, 1.0)
-        bii  *= drought_factor
-        ew   *= drought_factor
+    # Drought: pull BII toward a drought equilibrium (target-based, not compounding multiplication)
+    # Prevents permanent collapse under sustained warming — microbes adapt or form spores
+    if drought_yr >= 1:
+        drought_bii_eq = np.clip(moisture_ratio * 0.5, 0.05, 0.30)
+        bii = bii + 0.08 * (drought_bii_eq - bii)   # converge ~8%/yr → recover in ~12yr
+        # Earthworms are more drought-sensitive — harder moisture threshold
+        if drought_yr >= 2:
+            ew_factor = np.clip(moisture_ratio * 2.0, 0.30, 1.0)
+            ew = ew * ew_factor
 
     # ── Mycorrhizal network dynamics ──────────────────────────────────────
     # dMyc/dt = myc_rate × root_density × f(moisture) - 0.15 × Myc
@@ -136,10 +140,15 @@ def biology_step(
         0.05, 1.0
     )
 
-    # ── BII caps by soil conditions ───────────────────────────────────────
-    # pH extreme suppresses biodiversity
-    ph_ok = (soil_ph >= 4.5) & (soil_ph <= 8.5)
-    bii   = np.where(ph_ok, bii, bii * 0.5)
+    # ── BII ceiling by soil pH ────────────────────────────────────────────
+    # pH sets a MAXIMUM BII (calcareous high-pH soils can be biodverse but at lower ceiling)
+    # NOT an annual multiplicative penalty — just a cap on potential
+    ph_bii_max = np.where(
+        soil_ph <= 8.5, 1.0,
+        np.where(soil_ph <= 9.0, 0.55, 0.30)
+    )
+    ph_bii_max = np.where(soil_ph >= 4.5, ph_bii_max, 0.30)  # strong acid also limits
+    bii = np.minimum(bii, ph_bii_max)
 
     return {
         "bii":                 np.clip(bii, 0, 1),

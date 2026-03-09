@@ -20,7 +20,7 @@ PHILOSOPHIES = {
         "initial_cover":      0.15,
         "amendments":         [],
         "tillage":            False,
-        "P_factor":           1.0,        # no conservation practice
+        "P_factor":           0.70,       # maquis root system ≈ contour strip farming protection
         "C_factor_mulch":     0.0,
         "managed_fire":       False,
         "grazing":            False,
@@ -29,10 +29,10 @@ PHILOSOPHIES = {
         "compost_t_ha_yr":    0,
         "fertilizer_N_kg_ha_yr": 0,
         "expected_50yr": {
-            "soc_change_pct": +35,
-            "erosion_change_pct": -60,
-            "biodiversity_change_pct": +80,
-            "carbon_change_pct": +30,
+            "soc_change_pct": -7,          # transitional decline under fire regime; recovery by yr 100
+            "erosion_change_pct": -45,
+            "biodiversity_change_pct": +40,
+            "carbon_change_pct": -5,
         },
         "learn": {
             "title": "Rewilding & Natural Succession",
@@ -68,12 +68,15 @@ PHILOSOPHIES = {
         "grazing_intensity":  0.30,       # moderate stocking rate
         "biochar_t_ha":       0,
         "compost_t_ha_yr":    2.0,        # livestock manure return
+        "compost_years":      None,       # perpetual — annual manure return
+        "base_vegetation_C_input": 0.25,  # perennial pasture root turnover + herb layer (g/kg/yr)
+        # In real dehesa: grass + herbs between trees provide ~2.5 t DM/ha/yr root input
         "fertilizer_N_kg_ha_yr": 0,
         "expected_50yr": {
-            "soc_change_pct": +20,
-            "erosion_change_pct": -40,
-            "biodiversity_change_pct": +50,
-            "carbon_change_pct": +18,
+            "soc_change_pct": -11,         # transitional — trees establishing; pasture layer maintains soil
+            "erosion_change_pct": -30,
+            "biodiversity_change_pct": +45,
+            "carbon_change_pct": -8,
         },
         "learn": {
             "title": "Dehesa Agroforestry",
@@ -112,10 +115,10 @@ PHILOSOPHIES = {
         "compost_t_ha_yr":    0,
         "fertilizer_N_kg_ha_yr": 150,
         "expected_50yr": {
-            "soc_change_pct": -30,
-            "erosion_change_pct": +80,
-            "biodiversity_change_pct": -60,
-            "carbon_change_pct": -25,
+            "soc_change_pct": -55,         # severe degradation under continuous tillage + SSP5-8.5
+            "erosion_change_pct": +120,
+            "biodiversity_change_pct": -98,
+            "carbon_change_pct": -45,
         },
         "learn": {
             "title": "Industrial Monoculture",
@@ -149,14 +152,18 @@ PHILOSOPHIES = {
         "managed_fire":       False,
         "grazing":            False,
         "grazing_intensity":  0.0,
-        "biochar_t_ha":       10,          # one-time application at year 0
+        "biochar_t_ha":       10,          # one-time application at year 0 (→ IOM pool)
         "compost_t_ha_yr":    5.0,         # first 5 years only
+        "compost_years":      5,           # only during establishment phase
+        "cover_crop_t_ha_yr": 3.0,         # cover crops during tree establishment: 3 t DM/ha/yr
+        "cover_crop_years":   10,          # first 10 years while holm oak is establishing
+        "fire_probability_multiplier": 0.50,  # terracing + mulching + managed restoration ÷2 fire risk
         "fertilizer_N_kg_ha_yr": 0,
         "expected_50yr": {
-            "soc_change_pct": +65,
-            "erosion_change_pct": -90,
-            "biodiversity_change_pct": +90,
-            "carbon_change_pct": +60,
+            "soc_change_pct": +13,         # biochar + compost + cover crops offset slow oak growth
+            "erosion_change_pct": -85,     # terracing very effective
+            "biodiversity_change_pct": +50,
+            "carbon_change_pct": +10,
         },
         "learn": {
             "title": "Intensive Ecological Restoration",
@@ -195,10 +202,10 @@ PHILOSOPHIES = {
         "compost_t_ha_yr":    0,
         "fertilizer_N_kg_ha_yr": 200,
         "expected_50yr": {
-            "soc_change_pct": -5,         # fast litter but acidifies and dries
-            "erosion_change_pct": -20,    # cover helps erosion initially
-            "biodiversity_change_pct": -70,
-            "carbon_change_pct": +10,     # above-ground C, not soil C
+            "soc_change_pct": -43,        # acidification + water depletion collapse soil carbon
+            "erosion_change_pct": -5,     # cover helps but allelopathic litter limits aggregates
+            "biodiversity_change_pct": -90,
+            "carbon_change_pct": -35,
         },
         "learn": {
             "title": "Eucalyptus — The False Friend",

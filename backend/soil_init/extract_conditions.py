@@ -94,7 +94,7 @@ def _load_raster_window_np(path: str, lat_min: float, lat_max: float,
                 nodata = src.nodata
                 window = from_bounds(lon_min, lat_min, lon_max, lat_max, src.transform)
                 data = src.read(1, window=window, masked=True)
-        arr = data.filled(np.nan).astype(np.float64)
+        arr = data.astype(np.float64).filled(np.nan)  # cast to float FIRST (SoilGrids is uint8/uint16)
         if nodata is not None:
             arr[np.abs(arr - nodata) < 1e-3 * abs(nodata) + 1e-3] = np.nan
         # Replace NaN with nearest-neighbor fill before resize
@@ -203,9 +203,9 @@ def extract_initial_conditions(
     sand_arr = load("Sand_Content", "b0")
     clay_arr = load("Clay_Content", "b0")
     if sand_arr is None:
-        sand_arr = np.full(target_shape, 35.0)
+        sand_arr = np.full(target_shape, 350.0)  # g/kg (SoilGrids units); /10 below → 35%
     if clay_arr is None:
-        clay_arr = np.full(target_shape, 25.0)
+        clay_arr = np.full(target_shape, 250.0)  # g/kg; /10 below → 25%
     # SoilGrids sand/clay stored as g/kg, divide by 10 for %
     sand_pct = np.clip(sand_arr / 10.0, 1, 98)
     clay_pct = np.clip(clay_arr / 10.0, 1, 60)

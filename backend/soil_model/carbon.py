@@ -148,7 +148,17 @@ def rothc_step(
     # Q10 decreases under sustained warming; prevents runaway decomposition
     # acclimation_factor = 1 - 0.0093 * cumulative_warming (Bradford et al. 2008)
     acclimation = np.clip(1.0 - 0.0093 * cumulative_warming, 0.3, 1.0)
-    f_T_eff = f_T * acclimation   # shape (n_cells,) or scalar
+
+    # ── Mediterranean seasonal correction ─────────────────────────────────
+    # Annual-average T and moisture overestimate actual decomposition in
+    # Mediterranean climates where summer drought coincides with peak T.
+    # Barcelona monthly analysis: ∑(f_T_monthly × f_M_monthly) / 12 ≈ 0.65 ×
+    # f_T(T_annual) × f_M(moisture_annual).
+    # Reference: Palosso et al. (2005), Luo et al. (2012) — RothC overestimates
+    # Mediterranean mineralization by ~35% when using annual averages.
+    _MED_SEASONAL_CORRECTION = 0.65
+
+    f_T_eff = f_T * acclimation * _MED_SEASONAL_CORRECTION
 
     # ── Moisture modifier ─────────────────────────────────────────────────
     # Hard floor near wilting point — Mediterranean drought response

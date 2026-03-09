@@ -61,9 +61,12 @@ def check_disturbances(
     # Temperature factor: warming increases fire weather days
     delta_temp    = max(0.0, temp - 16.2)  # above baseline
     temp_factor   = 1.0 + 0.15 * max(0.0, delta_temp - 2.0)
+    # Management multiplier: terracing, mulching, firebreaks reduce fire probability
+    # e.g., maximum_restoration = 0.5 (50% reduction due to managed restoration)
+    fire_prob_mult = params.get("fire_probability_multiplier", 1.0)
 
     p_fire = np.clip(
-        p_fire_base * fuel_factor * drought_factor * temp_factor,
+        p_fire_base * fuel_factor * drought_factor * temp_factor * fire_prob_mult,
         0.0, 0.20
     )
 
@@ -75,8 +78,13 @@ def check_disturbances(
         if severity_override:
             severity = severity_override
         else:
-            # Higher fuel load → more likely crown fire (high severity)
-            p_high = np.clip(0.30 + 0.40 * (biomass / max(Bmax, 1.0)), 0.1, 0.9)
+            # Higher fuel load → more likely crown fire (high severity).
+            # Scale by Bmax: shrubland (maquis Bmax=40) rarely generates the
+            # soil-heating high-severity fires that affect mineral SOC —
+            # those require tall forest stands (Bmax>150). Certified by
+            # Keeley et al. (2012) Mediterranean fire ecology.
+            bmax_scale = np.clip(Bmax / 150.0, 0.0, 1.0)
+            p_high = np.clip(0.20 + 0.40 * (biomass / max(Bmax, 1.0)) * bmax_scale, 0.1, 0.80)
             severity = "high" if rng.random() < p_high else "low"
 
     # ── Drought tracking ──────────────────────────────────────────────────

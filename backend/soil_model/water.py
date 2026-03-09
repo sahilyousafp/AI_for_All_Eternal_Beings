@@ -78,12 +78,23 @@ def annual_water_balance(
 
     new_moisture = current_moisture + moisture_input
 
-    # ── Actual ET ─────────────────────────────────────────────────────────
+    # ── Actual ET — Budyko-constrained ────────────────────────────────────
     # Crop coefficient by canopy cover (FAO-56 style)
     Kc = 0.4 + 0.6 * canopy_cover   # bare=0.4, full canopy=1.0
+    pet_kc_mm = pet * Kc             # cell-specific annual PET demand (mm/yr)
+
+    # Fu (1981) Budyko parametric curve (w=2.0) — correctly handles
+    # Mediterranean seasonality: soil refills in wet winter, drains in dry summer.
+    # Annual AET is constrained by both water supply (P) and energy demand (PET).
+    phi = pet_kc_mm / max(float(precip), 1.0)
+    phi_arr = np.full(shape, phi) if np.isscalar(phi) else np.asarray(phi)
+    w = 2.0
+    aet_fraction = np.clip(1 + phi_arr - (1 + phi_arr ** w) ** (1.0 / w), 0.0, 1.0)
+    budyko_aet_m3 = aet_fraction * precip / 1000.0   # m³/m³ (1 m depth reference)
+
+    # Actual ET further limited by soil water availability
     available_water = np.maximum(new_moisture - wilting_point, 0.0)
-    et_demand_m3 = pet / 1000.0 * Kc  # mm → m³/m³ equivalent
-    actual_et = np.minimum(et_demand_m3, available_water)
+    actual_et = np.minimum(budyko_aet_m3, available_water)
 
     new_moisture = np.clip(new_moisture - actual_et, wilting_point, None)
 

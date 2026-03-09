@@ -180,3 +180,54 @@ def simulate_endpoint(req: SimulateRequest):
             status_code=500,
             detail=f"Simulation failed: {exc}\n\nTraceback:\n{tb}"
         )
+
+
+@router.get("/compare")
+def compare_philosophies_endpoint(
+    philosophies: str = Query(..., description="Comma-separated philosophy IDs"),
+    scenario: str = Query("ssp245"),
+    years: int = Query(50, ge=10, le=100),
+):
+    """
+    Run 2–3 philosophies side-by-side and return merged results dict.
+    philosophies: comma-separated, e.g. 'maximum_restoration,industrial_agriculture'
+    """
+    from backend.soil_model.philosophies import PHILOSOPHIES
+    from backend.climate_scenarios.ssp_data import get_scenario_display
+    from backend.soil_init.extract_conditions import extract_initial_conditions
+    from backend.soil_model.engine import simulate
+
+    philosophy_list = [p.strip() for p in philosophies.split(",") if p.strip()]
+    if not 2 <= len(philosophy_list) <= 3:
+        raise HTTPException(status_code=422, detail="Provide 2 or 3 comma-separated philosophies.")
+
+    valid_philosophies = set(PHILOSOPHIES.keys())
+    for p in philosophy_list:
+        if p not in valid_philosophies:
+            raise HTTPException(status_code=422, detail=f"Unknown philosophy '{p}'.")
+
+    valid_scenarios = {s["id"] for s in get_scenario_display()}
+    if scenario not in valid_scenarios:
+        raise HTTPException(status_code=422, detail=f"Unknown scenario '{scenario}'.")
+
+    t0 = time.time()
+    try:
+        initial_conditions = extract_initial_conditions(use_grid=True)
+        results = {}
+        for p in philosophy_list:
+            r = simulate(
+                philosophy=p,
+                climate_scenario=scenario,
+                years=years,
+                initial_conditions=initial_conditions,
+                n_ensemble=10,
+            )
+            r["runtime_seconds"] = round(time.time() - t0, 2)
+            results[p] = r
+        return results
+    except Exception as exc:
+        tb = traceback.format_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Comparison failed: {exc}\n\nTraceback:\n{tb}"
+        )

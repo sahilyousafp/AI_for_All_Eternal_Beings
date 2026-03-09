@@ -91,7 +91,7 @@ def get_chirps_variance() -> dict:
 
     try:
         from backend.ml_models.utils import TEMPORAL_REGISTRY
-        year_data = TEMPORAL_REGISTRY.get("CHIRPS_Precipitation", {})
+        year_data = TEMPORAL_REGISTRY.get("Precipitation_CHIRPS", {})
         means = []
         for yr, files in year_data.items():
             path = next(iter(files.values()), None)
@@ -109,8 +109,12 @@ def get_chirps_variance() -> dict:
             except Exception:
                 continue
         if len(means) >= 3:
-            std = float(np.std(means))
-            _chirps_variance_cache = {"precip_std": std, "temp_std": std * 0.15}
+            mean_val = float(np.mean(means))
+            std_raw  = float(np.std(means))
+            # Scale raw CHIRPS units → mm/yr using the known Barcelona baseline
+            scale = BASELINE_PRECIP / mean_val if mean_val > 0 else 1.0
+            precip_std = std_raw * scale   # ~90 mm/yr for Barcelona (≈15% CV, realistic)
+            _chirps_variance_cache = {"precip_std": precip_std, "temp_std": 0.6}
         else:
             _chirps_variance_cache = {"precip_std": 45.0, "temp_std": 0.6}
     except Exception:
@@ -167,12 +171,13 @@ def get_climate(scenario_id: str, year: int, seed: int = None) -> dict:
     precip = max(50.0, BASELINE_PRECIP * (1 + dP_frac) + noise_P)
     summer_precip = max(5.0, BASELINE_SUMMER_PRECIP * (1 + dP_sum))
 
-    # Hargreaves simplified PET (Hargreaves & Samani 1985)
-    # PET ≈ 0.0023 × Ra × (Tmean + 17.8) × ΔT_range^0.5  [mm/day]
-    # Annual: multiply by 365; use T_range proxy = 12°C for Barcelona
-    t_range = 12.0
-    pet_daily = 0.0023 * RA_BARCELONA * (temp + 17.8) * (t_range ** 0.5)
-    pet = pet_daily * 365.0
+    # Calibrated annual PET for Barcelona (literature: 800-1000 mm/yr Penman-Monteith,
+    # SIAR agroclimatic stations 2000-2024 mean ≈ 950 mm/yr).
+    # Temperature sensitivity from Hargreaves proportionality: PET ∝ (Tmean + 17.8).
+    # Note: using annual-mean Ra in the Hargreaves formula overestimates by ~3.9×;
+    # calibrated directly instead.
+    _BASELINE_PET = 950.0  # mm/yr
+    pet = _BASELINE_PET * (temp + 17.8) / (BASELINE_TEMP_C + 17.8)
 
     # Drought index: ratio of moisture deficit
     # 0 = no drought (P >= PET), 1 = severe (P << PET)

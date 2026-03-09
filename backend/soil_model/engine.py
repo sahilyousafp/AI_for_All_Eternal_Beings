@@ -29,10 +29,21 @@ def _init_veg_state(philosophy: dict, ic: dict, n_cells: int) -> dict:
 
     initial_cover = philosophy.get("initial_cover", 0.15)
     density       = philosophy.get("planting_density", 0.0)
+    Bmax = params.get("Bmax", 50.0)
+    k    = params.get("k", 0.02)
+    p    = params.get("p", 2.0)
+
+    initial_biomass = max(1.0, initial_cover * Bmax * 0.1)
+
+    # Initialise stand_age to match initial_biomass via Chapman-Richards inverse
+    # B = Bmax × (1 - exp(-k×age))^p  →  age = -ln(1 - (B/Bmax)^(1/p)) / k
+    frac = (initial_biomass / max(Bmax, 0.01)) ** (1.0 / max(p, 0.1))
+    frac = min(frac, 1.0 - 1e-6)
+    stand_age_0 = -np.log(1.0 - frac) / max(k, 1e-6)
 
     return {
-        "stand_age":     np.zeros(n_cells),
-        "biomass":       np.full(n_cells, max(1.0, initial_cover * params.get("Bmax", 50.0) * 0.1)),
+        "stand_age":     np.full(n_cells, stand_age_0),
+        "biomass":       np.full(n_cells, initial_biomass),
         "density":       np.full(n_cells, float(density)),
         "canopy_cover":  np.full(n_cells, initial_cover),
         "is_alive":      np.ones(n_cells, dtype=bool),
@@ -125,12 +136,13 @@ def simulate(
 
     baseline_oc = oc_3layer[:, 0].copy()  # surface layer at t=0 for veg feedback
 
-    # ── Biochar amendment (one-time at year 0) ────────────────────────────
+    # ── Biochar amendment — C goes to IOM (stable, k≈0) ──────────────────
+    # Biochar is pyrolytic carbon: >80% refractory, stable for 100-1000 years.
+    # Correct: add to IOM pool after initialization, NOT to total OC (which
+    # would distribute biochar C to fast-cycling DPM/RPM pools at init ratios).
+    # Conversion: biochar_t_ha × 80% C content × 0.238 g/kg per t C/ha
     biochar_t_ha = phil.get("biochar_t_ha", 0)
-    if biochar_t_ha > 0:
-        # Biochar adds ~0.5 g/kg OC per t/ha applied (clay-corrected estimate)
-        biochar_oc = biochar_t_ha * 0.5
-        oc_3layer[:, 0] = np.clip(oc_3layer[:, 0] + biochar_oc, 0, None)
+    biochar_iom_val = biochar_t_ha * 0.80 * 0.238  # g/kg added to IOM if > 0
 
     # ── Per-ensemble initialisation ───────────────────────────────────────
     # Shape: (n_ensemble, n_cells[, 3]) — broadcast across ensemble dimension
@@ -141,6 +153,9 @@ def simulate(
 
     for e in range(n_ensemble):
         pools_e = initialize_pools(oc_3layer, clay_pct, {}, np.full(n_cells, 0.3))
+        # Biochar C added directly to IOM (surface layer) — stable, never decomposes
+        if biochar_iom_val > 0:
+            pools_e["IOM"][:, 0] += biochar_iom_val
         veg_e   = _init_veg_state(phil, initial_conditions, n_cells)
         bio_e   = _init_bio_state(n_cells)
         moist_e = fc.copy()  # start at field capacity
@@ -152,11 +167,12 @@ def simulate(
     # ── Output storage ────────────────────────────────────────────────────
     ts_keys = [
         "total_soc", "erosion", "biodiversity", "canopy_cover",
-        "co2_emitted", "water_stress",
+        "co2_emitted", "water_stress", "carbon_seq",
     ]
     timeseries = {f"{k}_{s}": [] for k in ts_keys for s in ("mean", "p10", "p90")}
     spatial_timeseries = {}
     events_log = []
+    _initial_mean_soc = None   # set at yr_idx=0 for sequestration counter
 
     start_year = 2025
 
@@ -172,6 +188,7 @@ def simulate(
         ens_can   = np.zeros((n_ensemble, n_cells))
         ens_co2   = np.zeros((n_ensemble, n_cells))
         ens_wstr  = np.zeros((n_ensemble, n_cells))
+        ens_cseq  = np.zeros((n_ensemble, n_cells))   # carbon sequestered vs baseline
 
         for e in range(n_ensemble):
             # 1. Climate with per-ensemble stochastic seed
@@ -240,10 +257,30 @@ def simulate(
             cumul_warming = np.full(n_cells, max(0.0, climate["temp"] - 16.2) * yr_idx / max(yr_idx, 1))
 
             carbon_input_surface = veg_new.get("carbon_input", np.full(n_cells, 0.3))
-            # Compost amendment
-            compost_add = phil.get("compost_t_ha_yr", 0.0)
-            if compost_add > 0 and yr_idx <= 5:
-                carbon_input_surface += compost_add * 0.15  # 15% of compost becomes soil C
+            # Compost amendment: convert t C/ha/yr → g/kg/yr (BD=1.4, depth=0.30m: ×0.238)
+            compost_add   = phil.get("compost_t_ha_yr", 0.0)
+            compost_years = phil.get("compost_years", 5)   # None = perpetual
+            if compost_add > 0 and (compost_years is None or yr_idx <= compost_years):
+                carbon_input_surface += compost_add * 0.15 * 0.238  # 15% C return, scaled to g/kg/yr
+
+            # Cover crop C_input during establishment (if specified in philosophy)
+            # Cover crops: fast-growing annuals suppress weeds and add labile C during tree establishment
+            cover_crop_t_ha_yr = phil.get("cover_crop_t_ha_yr", 0.0)
+            cover_crop_years   = phil.get("cover_crop_years", 10)   # typically 10yr establishment
+            if cover_crop_t_ha_yr > 0 and yr_idx < cover_crop_years:
+                # t DM/ha/yr × 50% C content × 0.238 g/kg per t C/ha
+                carbon_input_surface += cover_crop_t_ha_yr * 0.50 * 0.238
+
+            # Base vegetation C_input: perennial understory (grass, herb layer) in agroforestry systems
+            # E.g., dehesa has continuous grass/herb root turnover independent of tree layer
+            base_veg_cinput = phil.get("base_vegetation_C_input", 0.0)
+            if base_veg_cinput > 0:
+                carbon_input_surface += base_veg_cinput
+
+            # N-cycling bonus: mycorrhizal networks mobilise N, boosting C input by up to 15%
+            # Industrial agriculture suppresses Myc → lower bonus; restoration builds it up
+            n_cycling_bonus = bio_ens[e]["mycorrhizal"] * 0.15
+            carbon_input_surface = carbon_input_surface * (1.0 + n_cycling_bonus)
 
             # DPM:RPM ratio from vegetation
             dpm_rpm = veg_new.get("dpm_rpm_ratio", 1.44)
@@ -252,12 +289,23 @@ def simulate(
             layer_co2   = np.zeros(n_cells)
             leach_from_above = np.zeros(n_cells)
 
+            # Root C input distributed to deeper layers by exponential depth profile
+            # (roots penetrate to root_depth; fraction in each layer follows exponential decay)
+            root_depth  = params.get("root_depth", 2.0)
+            # Fraction of TOTAL C input attributed to roots (already in carbon_input_surface),
+            # re-distributed to layers 1 and 2 proportional to root fraction below 30cm.
+            # Deep root contribution: 20% of surface C × (1 - exp(-root_depth_m/1.5))
+            deep_root_frac = 0.20 * (1.0 - np.exp(-root_depth / 1.5))
+            root_deep_total = carbon_input_surface * deep_root_frac
+            # layer 1 (30-100cm): 60% of deep root fraction; layer 2: 40%
+            root_to_layer = [root_deep_total * 0.60, root_deep_total * 0.40]
+
             for l in range(3):
-                # Carbon input: surface gets veg litter, deeper gets DOC leaching
+                # Carbon input: surface gets veg litter, deeper gets root litter + DOC leaching
                 if l == 0:
                     c_input = carbon_input_surface
                 else:
-                    c_input = leach_from_above
+                    c_input = leach_from_above + root_to_layer[l - 1]
 
                 layer_moisture = moisture_ratio * (1.0 - l * 0.15)  # moisture decreases with depth
 
@@ -279,17 +327,24 @@ def simulate(
             pools_ens[e] = _flat_to_pools(layer_pools)
 
             # Apply fire effects to carbon pools
+            # Fire affects surface LITTER (DPM/BIO) heavily but mineral soil
+            # RPM and HUM survive largely intact — fire heat doesn't penetrate the
+            # mineral soil. Literature: DeLuca & Aplet (2008), Certini (2005).
             if disturbance["fire"]:
                 sev = disturbance["severity"]
                 if sev == "high":
+                    pools_ens[e]["DPM"][:, 0] *= 0.05   # litter layer almost completely burned
+                    pools_ens[e]["BIO"][:, 0] *= 0.25   # most microbial biomass killed by heat
+                    pools_ens[e]["RPM"][:, 0] *= 0.60   # partially decomposed material: 40% loss
+                    # HUM (mineral-stabilised) and IOM: not affected by surface fire
+                    # Deeper layers: slight heat-induced effect
                     for key in ("DPM", "RPM", "BIO"):
-                        pools_ens[e][key][:, 0] *= 0.25  # surface layer heavily burned
-                    for key in ("DPM", "RPM", "BIO", "HUM"):
                         if pools_ens[e][key].shape[1] > 1:
-                            pools_ens[e][key][:, 1:] *= 0.93
+                            pools_ens[e][key][:, 1:] *= 0.97
                 elif sev == "low":
-                    pools_ens[e]["DPM"][:, 0] *= 0.85
-                    pools_ens[e]["BIO"][:, 0] *= 0.70
+                    pools_ens[e]["DPM"][:, 0] *= 0.60   # partial litter loss
+                    pools_ens[e]["BIO"][:, 0] *= 0.70   # microbial suppression
+                    # RPM and HUM: minimal impact from low-severity fire
 
             # 7. Biology step
             bio_new = biology_step(
@@ -304,6 +359,14 @@ def simulate(
             )
 
             # 8. Erosion (reshape to 20×20 for RUSLE grid calculation)
+            # Dynamic P_factor: root systems develop with canopy, providing up to 30%
+            # additional erosion protection for non-tillage philosophies
+            effective_P = sim_params.get("P_factor", 1.0)
+            if not sim_params.get("tillage", False):
+                mean_canopy = float(np.mean(veg_new["canopy_cover"]))
+                effective_P = max(0.10, effective_P * (1.0 - mean_canopy * 0.30))
+            local_erosion_params = {**sim_params, "P_factor": effective_P}
+
             soc_2d = current_soc_surface.reshape(rows, cols)
             erode_result = compute_erosion(
                 climate=climate,
@@ -316,12 +379,15 @@ def simulate(
                     "post_fire_year":      disturbance.get("post_fire_year", 0),
                 },
                 veg_state={"canopy_cover": veg_new["canopy_cover"].reshape(rows, cols)},
-                params=sim_params,
+                params=local_erosion_params,
             )
             erosion_flat = erode_result["erosion_rate"].reshape(n_cells)
 
             # SOC erosion loss: reduce surface layer
-            soc_loss = erode_result["soc_erosion_loss"].reshape(n_cells)
+            # soc_erosion_loss is in t C/ha/yr; convert to g/kg before subtracting
+            # from pools (BD≈1.4 t/m³, depth=0.30m: 1 t C/ha = 0.238 g/kg)
+            soc_loss_tcha = erode_result["soc_erosion_loss"].reshape(n_cells)
+            soc_loss = soc_loss_tcha * 0.238   # g/kg/yr
             pools_ens[e]["HUM"][:, 0] = np.clip(
                 pools_ens[e]["HUM"][:, 0] - soc_loss * 0.5, 0, None
             )
@@ -331,12 +397,15 @@ def simulate(
 
             # 9. Collect outputs
             soc_all = total_soc(pools_ens[e])  # (n_cells, 3)
-            ens_soc[e]   = np.sum(soc_all, axis=1)   # total across all layers
+            # Track surface SOC (0-30cm layer 0) for timeseries — most responsive to management.
+            # Deep layers contribute to spatial output but are excluded from the primary % metric.
+            ens_soc[e]   = soc_all[:, 0]   # surface layer only (g/kg, 0-30cm)
             ens_erode[e] = erosion_flat
             ens_bio[e]   = bio_new["bii"]
             ens_can[e]   = veg_new["canopy_cover"]
             ens_co2[e]   = layer_co2
             ens_wstr[e]  = water_result["water_stress"]
+            # Carbon sequestration computed below (after _initial_mean_soc is set)
 
             # Update states
             veg_ens[e]      = veg_new
@@ -353,6 +422,14 @@ def simulate(
                     "cells_affected": int(np.sum(veg_new["canopy_cover"] < 0.1)),
                 })
 
+        # ── Carbon sequestration counter ──────────────────────────────────
+        # Track net SOC change vs initial, converted to t C/ha (×4.2 for BD=1.4, 0-30cm)
+        if yr_idx == 0:
+            _initial_mean_soc = float(np.mean(ens_soc))
+        # (SOC in g/kg) × 4.2 = t C/ha. Negative = net loss, positive = net sequestration
+        for e_idx in range(n_ensemble):
+            ens_cseq[e_idx] = (ens_soc[e_idx] - _initial_mean_soc) * 4.2
+
         # ── Aggregate across ensemble ─────────────────────────────────────
         def _agg(arr_ens):
             mean = float(np.mean(arr_ens))
@@ -360,7 +437,7 @@ def simulate(
             p90  = float(np.percentile(arr_ens, 90))
             return mean, p10, p90
 
-        for k, ens_arr in zip(ts_keys, [ens_soc, ens_erode, ens_bio, ens_can, ens_co2, ens_wstr]):
+        for k, ens_arr in zip(ts_keys, [ens_soc, ens_erode, ens_bio, ens_can, ens_co2, ens_wstr, ens_cseq]):
             m, lo, hi = _agg(ens_arr)
             timeseries[f"{k}_mean"].append(round(m, 4))
             timeseries[f"{k}_p10"].append(round(lo, 4))

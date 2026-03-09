@@ -32,6 +32,13 @@ SPECIES_PARAMS = {
         "max_density": 300.0,  # trees/ha carrying capacity
         "water_table_draw": 0.50,  # t water/ha/m rooting drawn from deep
         "co2_response": 0.35,  # C3 CO2 fertilisation sensitivity
+        # Litter calibrated to Mediterranean oak woodland literature (Ibáñez et al. 2002):
+        # Leaf litterfall ~4-7 t DM/ha/yr at canopy closure; roots ~1-2 t/ha/yr.
+        # At Bmax, caps prevent unrealistic accumulation.
+        "litter_fraction_above": 0.10,  # 10% of current biomass → leaf turnover
+        "root_litter_fraction": 0.04,   # 4% → fine root turnover
+        "max_leaf_litter": 7.0,         # t DM/ha/yr cap (canopy-closure limit)
+        "max_root_litter": 2.5,         # t DM/ha/yr cap
     },
     "med_pine": {
         "Bmax": 180.0, "k": 0.030, "p": 2.5, "max_canopy": 0.75,
@@ -40,6 +47,10 @@ SPECIES_PARAMS = {
         "fire_survival_low": 0.20, "fire_survival_high": 0.05,
         "maturity_yr": 35, "Kw": 0.35, "myc_rate": 0.05,
         "max_density": 600.0, "water_table_draw": 0.30, "co2_response": 0.30,
+        "litter_fraction_above": 0.08,  # pine needle drop (~5-6 t/ha/yr at canopy closure)
+        "root_litter_fraction": 0.04,
+        "max_leaf_litter": 6.0,
+        "max_root_litter": 2.5,
     },
     "eucalyptus": {
         "Bmax": 300.0, "k": 0.080, "p": 2.0, "max_canopy": 0.90,
@@ -51,6 +62,12 @@ SPECIES_PARAMS = {
         "max_density": 1200.0,
         "water_table_draw": 1.20,  # very high water draw — depletes soil moisture
         "co2_response": 0.20,
+        # Eucalyptus: prolific litter (~10-15 t/ha/yr at stocking) but allelopathic
+        # oils/tannins reduce effective soil incorporation. Cap + resistant DPM_RPM=0.10.
+        "litter_fraction_above": 0.05,
+        "root_litter_fraction": 0.015,
+        "max_leaf_litter": 12.0,   # t/ha/yr (high absolute cap for dense plantation)
+        "max_root_litter": 3.5,
     },
     "maquis": {
         "Bmax": 40.0, "k": 0.060, "p": 2.0, "max_canopy": 0.55,
@@ -59,6 +76,12 @@ SPECIES_PARAMS = {
         "fire_survival_low": 0.90, "fire_survival_high": 0.50,
         "maturity_yr": 8, "Kw": 0.15, "myc_rate": 0.04,
         "max_density": 2000.0, "water_table_draw": 0.20, "co2_response": 0.25,
+        # Maquis: fast-cycling shrub litter (labile DPM_RPM=0.80 → more DPM).
+        # Litterfall ~2-4 t/ha/yr at Bmax=40; small Bmax → higher fractional turnover.
+        "litter_fraction_above": 0.12,
+        "root_litter_fraction": 0.06,
+        "max_leaf_litter": 4.0,
+        "max_root_litter": 2.0,
     },
     "agroforestry": {
         "Bmax": 120.0, "k": 0.020, "p": 2.5, "max_canopy": 0.40,
@@ -67,13 +90,31 @@ SPECIES_PARAMS = {
         "fire_survival_low": 0.60, "fire_survival_high": 0.30,
         "maturity_yr": 25, "Kw": 0.30, "myc_rate": 0.06,
         "max_density": 150.0, "water_table_draw": 0.40, "co2_response": 0.30,
+        # Sparse dehesa oak + pasture understorey; moderate litter inputs.
+        "litter_fraction_above": 0.08,
+        "root_litter_fraction": 0.04,
+        "max_leaf_litter": 5.0,
+        "max_root_litter": 2.0,
     },
 }
 
 # Annual crops (industrial agriculture) — no permanent vegetation
 ANNUAL_CROP_PARAMS = {
-    "max_canopy": 0.35, "DPM_RPM": 2.0, "litter_CN": 15.0,
+    "Bmax": 12.0,          # realistic max for annual crop standing biomass (wheat/barley)
+    "k": 1.0,              # fast growth — reaches max in ~1 growing season
+    "p": 1.5,
+    "max_canopy": 0.35,
+    "DPM_RPM": 2.0,        # highly labile litter (crop residue)
+    "litter_CN": 15.0,
+    # Straw + stubble incorporated by tillage (~30% of above-ground biomass);
+    # root turnover ~10% (fine annual roots decompose in-year).
+    # Together these give ~0.57 g/kg/yr C_input → realistic SOC equilibrium ~5 g/kg.
+    "litter_fraction_above": 0.30,
+    "root_litter_fraction": 0.10,
+    "max_leaf_litter": 4.0,   # t DM/ha/yr — straw cap (any over is baled/burned)
+    "max_root_litter": 1.5,
     "fire_resprout": False, "fire_survival_low": 0.0, "fire_survival_high": 0.0,
+    "co2_response": 0.10,  # small CO2 fertilisation for C3 cereals
 }
 
 
@@ -188,12 +229,22 @@ def vegetation_step(
     canopy_cover = np.where(is_alive, canopy_cover, 0.0)
 
     # ── Litter production and soil carbon input ───────────────────────────
-    # Leaf turnover + root turnover → soil C input
+    # Leaf/above-ground turnover + root turnover → soil C input
+    # litter_fraction_above: fraction of above-ground biomass returned to soil
+    # (annual crops: ~0.05 — harvest removes most; perennials: default 0.30)
+    litter_frac_above  = params.get("litter_fraction_above", 0.10)   # fraction of above-ground biomass → leaf litter
+    root_litter_frac   = params.get("root_litter_fraction", 0.04)   # fraction → fine root turnover to soil
+    max_leaf_litter    = params.get("max_leaf_litter", 8.0)         # t DM/ha/yr cap (canopy-closure limit)
+    max_root_litter    = params.get("max_root_litter", 3.0)         # t DM/ha/yr cap
     drought_effect = np.clip(1.0 - f_water, 0, 1)
-    leaf_litter   = biomass_new * 0.30 * (1.0 + drought_effect * 0.5)  # t/ha/yr
-    root_litter   = biomass_new * 0.25 * 0.60  # root turnover fraction
-    # C input to soil (t C/ha/yr): approx 50% of biomass litter is C
-    C_input = (leaf_litter + root_litter) * 0.5 / 1000.0 * 100.0  # biomass→C, scale
+    leaf_litter   = np.minimum(
+        biomass_new * litter_frac_above * (1.0 + drought_effect * 0.5),
+        max_leaf_litter
+    )  # t/ha/yr
+    root_litter   = np.minimum(biomass_new * root_litter_frac, max_root_litter)  # fine root turnover
+    # C input to soil (g/kg/yr): litter (t DM/ha/yr) × 50% C × 0.238 g/kg per t C/ha
+    # Conversion: 1 t C/ha = 0.238 g/kg for BD=1.4 t/m³, 0-30cm layer
+    C_input = (leaf_litter + root_litter) * 0.50 * 0.238
     C_input = np.where(is_alive, C_input, 0.0)
 
     dpm_rpm_ratio = params.get("DPM_RPM", 1.44)

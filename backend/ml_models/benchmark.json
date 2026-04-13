@@ -1,0 +1,32 @@
+{
+  "random": {
+    "method": "stratified random k-fold",
+    "n_folds": 5,
+    "fold_accuracies": [
+      0.9978592453839978,
+      0.9986616702355461,
+      0.9962526766595289,
+      0.9983940042826552,
+      0.9975910064239829
+    ],
+    "mean_accuracy": 0.9977517205971422,
+    "std_accuracy": 0.0008396499305359871,
+    "mean_macro_f1": 0.866227108822339
+  },
+  "spatial": {
+    "method": "blocked spatial k-fold (Wadoux et al. 2021)",
+    "n_folds": 5,
+    "fold_accuracies": [
+      0.9981102362204725,
+      0.9908446544595393,
+      0.9993169398907104,
+      1.0,
+      0.9985559566787003
+    ],
+    "mean_accuracy": 0.9973655574498845,
+    "std_accuracy": 0.0033239119598763565,
+    "mean_macro_f1": 0.8851583347266523
+  },
+  "n_samples": 18681,
+  "runtime_seconds": 2.306795120239258
+}

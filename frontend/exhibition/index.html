@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Soil Futures — Interactive Exhibition</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
   <style>
     :root {
@@ -118,6 +119,67 @@
     h2 { font-size: 1.3rem; font-weight: 600; margin-bottom: 0.5rem; }
     .subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 1.5rem; }
 
+    /* Living Layer — microbial indicators panel */
+    #living-layer {
+      margin-top: 2rem;
+      padding: 1.5rem;
+      background: linear-gradient(135deg, #0f1f0f 0%, #141414 100%);
+      border: 1px solid #2d4a2d;
+      border-radius: 12px;
+    }
+    #living-layer h3 {
+      font-size: 1rem; font-weight: 600; margin-bottom: 0.25rem;
+      color: #a3e635;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    #living-layer .ll-tag {
+      font-size: 0.65rem; font-weight: 500; letter-spacing: 0.1em;
+      text-transform: uppercase; color: #84CC16;
+      background: rgba(132,204,22,0.12); padding: 0.15rem 0.5rem; border-radius: 4px;
+    }
+    #living-layer .ll-blurb {
+      font-size: 0.78rem; color: var(--muted); margin-bottom: 1.25rem; line-height: 1.55;
+      max-width: 720px;
+    }
+    #living-layer .ll-grid {
+      display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr; gap: 1rem;
+      align-items: stretch;
+    }
+    .ll-tile {
+      background: rgba(0,0,0,0.35); border: 1px solid #1f2f1f;
+      border-radius: 8px; padding: 0.85rem; display: flex; flex-direction: column;
+      justify-content: space-between; min-height: 120px;
+    }
+    .ll-tile .ll-name {
+      font-size: 0.7rem; color: var(--muted); text-transform: uppercase;
+      letter-spacing: 0.06em; margin-bottom: 0.35rem;
+    }
+    .ll-tile .ll-value {
+      font-size: 1.7rem; font-weight: 700; color: #e8e8e8; line-height: 1;
+    }
+    .ll-tile .ll-unit { font-size: 0.7rem; color: var(--muted); margin-left: 0.25rem; }
+    .ll-tile .ll-foot { font-size: 0.68rem; color: #6b7280; margin-top: 0.4rem; }
+    .ll-tile.lsi { border-color: #84CC16; background: rgba(132,204,22,0.06); }
+    .ll-tile.lsi .ll-value { font-size: 2.2rem; color: #a3e635; }
+    .ll-strip {
+      height: 6px; border-radius: 3px; margin-top: 0.5rem;
+      background: linear-gradient(90deg, #6b7280 0%, #84CC16 100%);
+      position: relative;
+    }
+    .ll-strip::after {
+      content: ''; position: absolute; top: -3px;
+      width: 2px; height: 12px; background: #fff;
+      left: var(--ll-pos, 0%);
+    }
+    #living-layer .ll-chart-card {
+      grid-column: 1 / -1;
+      background: rgba(0,0,0,0.35); border: 1px solid #1f2f1f;
+      border-radius: 8px; padding: 1rem; margin-top: 1rem;
+    }
+    #living-layer .ll-chart-card h4 {
+      font-size: 0.78rem; color: var(--muted); font-weight: 500; margin-bottom: 0.5rem;
+    }
+
     footer { text-align: center; padding: 2rem; color: var(--muted); font-size: 0.78rem; border-top: 1px solid var(--border); margin-top: 3rem; }
   </style>
 </head>
@@ -129,9 +191,10 @@
     </div>
   </header>
 
-  <div id="loading-overlay">
+  <div id="loading-overlay" onclick="cancelSimulation()">
     <div class="spinner"></div>
     <p id="loading-msg">Running simulation…</p>
+    <button class="btn btn-outline" style="margin-top:0.5rem;font-size:0.8rem;padding:0.4rem 1rem;" onclick="cancelSimulation()">Cancel ✕</button>
   </div>
 
   <!-- Phase 1: Choose philosophy -->
@@ -176,19 +239,15 @@
     <p class="subtitle" id="sim-subtitle">Configure and run the soil evolution model.</p>
 
     <div id="scenario-bar">
-      <label style="font-size:0.85rem; color:var(--muted);">
-        Time horizon:
-        <input type="range" id="years-slider" min="10" max="100" step="10" value="50"
-               oninput="document.getElementById('years-val').textContent=this.value">
-        <span id="years-val">50</span> years
-      </label>
-      <label style="font-size:0.85rem; color:var(--muted);">
-        Ensemble:
-        <select id="ensemble-select" style="background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px;">
-          <option value="5">5 members</option>
-          <option value="10" selected>10 members</option>
-        </select>
-      </label>
+      <div style="display:flex; gap:0.75rem; align-items:center;">
+        <span style="font-size:0.82rem; color:var(--muted);">Years to simulate:</span>
+        <input type="range" id="years-slider" min="1" max="100" value="50" step="1"
+               oninput="document.getElementById('years-label').textContent = this.value + ' yr'">
+        <span id="years-label" style="font-size:0.82rem; color:var(--accent); min-width:48px;">50 yr</span>
+      </div>
+      <select id="ensemble-select" style="display:none;">
+        <option value="3" selected>3 members</option>
+      </select>
       <button class="btn btn-outline" onclick="showPhase(2)">← Back</button>
       <button class="btn" id="btn-run" onclick="runSimulation()">Run Simulation ▶</button>
     </div>
@@ -204,41 +263,73 @@
           <canvas id="chart-erosion"></canvas>
         </div>
         <div class="chart-card">
-          <h4>Biodiversity Index (0–1)</h4>
+          <h4>Water Retention (%)</h4>
           <canvas id="chart-bio"></canvas>
         </div>
         <div class="chart-card">
-          <h4>Canopy Cover (%)</h4>
+          <h4>Bulk Density (t/m³)</h4>
           <canvas id="chart-canopy"></canvas>
         </div>
       </div>
 
-      <div class="grid-2" style="margin-top:1.5rem;">
-        <div class="card" style="cursor:default;">
-          <h4 style="margin-bottom:0.75rem; font-size:0.85rem; color:var(--muted);">Prediction Confidence</h4>
-          <div class="confidence-bar" id="conf-bar"></div>
-          <p style="font-size:0.78rem; color:var(--muted); margin-top:0.4rem;" id="conf-label"></p>
-        </div>
-        <div class="card" style="cursor:default;">
-          <h4 style="margin-bottom:0.5rem; font-size:0.85rem; color:var(--muted);">Disturbance Events</h4>
-          <div class="events-list" id="events-list"></div>
+      <!-- Living Layer — microbial indicators (the second axis) -->
+      <div id="living-layer" style="display:none;">
+        <h3>The Living Layer <span class="ll-tag">microbial indicators</span></h3>
+        <p class="ll-blurb">
+          The columns above show carbon. This panel shows the soil's living community — the
+          microbes that decide whether carbon stays or leaves. They respond in seasons,
+          not decades, so they are the early-warning system for everything else.
+          A teaspoon of healthy soil contains more living organisms than there are humans on
+          Earth.
+        </p>
+        <div class="ll-grid">
+          <div class="ll-tile lsi">
+            <div class="ll-name">Living Soil Index</div>
+            <div><span id="ll-lsi-val" class="ll-value">—</span><span class="ll-unit">/100</span></div>
+            <div class="ll-strip" id="ll-lsi-strip"></div>
+            <div class="ll-foot">composite of the four indicators →</div>
+          </div>
+          <div class="ll-tile">
+            <div class="ll-name">Microbial biomass C</div>
+            <div><span id="ll-mbc-val" class="ll-value">—</span><span class="ll-unit">g/kg</span></div>
+            <div class="ll-foot">how much life is down there</div>
+          </div>
+          <div class="ll-tile">
+            <div class="ll-name">Fungi : Bacteria</div>
+            <div><span id="ll-fb-val" class="ll-value">—</span></div>
+            <div class="ll-foot">&gt;1 = mature · &lt;0.5 = stressed</div>
+          </div>
+          <div class="ll-tile">
+            <div class="ll-name">qCO₂ stress</div>
+            <div><span id="ll-qco2-val" class="ll-value">—</span><span class="ll-unit">mg/g·h</span></div>
+            <div class="ll-foot">low = efficient · high = working too hard</div>
+          </div>
+          <div class="ll-tile">
+            <div class="ll-name">Mycorrhizal AMF</div>
+            <div><span id="ll-amf-val" class="ll-value">—</span><span class="ll-unit">%</span></div>
+            <div class="ll-foot">root colonisation — the wood-wide-web</div>
+          </div>
+          <div class="ll-chart-card">
+            <h4>Living Soil Index trajectory · with P10–P90 envelope</h4>
+            <canvas id="chart-lsi"></canvas>
+          </div>
         </div>
       </div>
 
-      <div class="card" style="cursor:default; margin-top:1.5rem;">
-        <h4 style="margin-bottom:0.75rem; font-size:0.85rem; color:var(--muted);">Final Year Soil Carbon Map (20×20 grid)</h4>
-        <div id="spatial-soc" class="spatial-grid" style="grid-template-columns:repeat(20,1fr); max-width:400px;"></div>
-      </div>
+      <div id="conf-bar" style="display:none;"></div>
+      <p id="conf-label" style="display:none;"></p>
+      <div id="events-list" style="display:none;"></div>
+      <div id="spatial-soc" style="display:none;"></div>
     </div>
   </div>
 
   <footer>
     Data: SoilGrids (ISRIC) · CHIRPS · MODIS · IPCC AR6 · RothC (Coleman &amp; Jenkinson 1996) · RUSLE
-    <br>Barcelona region, Spain · 2.5km resolution · 10-member ensemble
+    <br>Barcelona region, Spain · 2.5km resolution
   </footer>
 
-  <script src="simulation.js"></script>
-  <script src="renderer.js"></script>
-  <script src="app.js"></script>
+  <script src="simulation.js?v=10"></script>
+  <script src="renderer.js?v=10"></script>
+  <script src="app.js?v=10"></script>
 </body>
 </html>

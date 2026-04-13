@@ -20,6 +20,7 @@ from backend.soil_model.biology import biology_step
 from backend.soil_model.erosion import compute_erosion
 from backend.soil_model.disturbances import check_disturbances
 from backend.soil_model.philosophies import get_philosophy
+from backend.soil_model.microbial_indicators import compute_all_indicators
 
 
 def _init_veg_state(philosophy: dict, ic: dict, n_cells: int) -> dict:
@@ -100,7 +101,7 @@ def simulate(
     -------
     dict matching /api/exhibition/simulate response schema.
     """
-    years = int(np.clip(years, 10, 100))
+    years = int(np.clip(years, 1, 100))
     phil  = get_philosophy(philosophy)
     species_name = phil.get("species")
     params = (SPECIES_PARAMS.get(species_name, ANNUAL_CROP_PARAMS)
@@ -134,7 +135,8 @@ def simulate(
     lat_grid     = initial_conditions["lat_grid"]
     lon_grid     = initial_conditions["lon_grid"]
 
-    baseline_oc = oc_3layer[:, 0].copy()  # surface layer at t=0 for veg feedback
+    baseline_oc      = oc_3layer[:, 0].copy()  # surface layer at t=0 for veg feedback
+    soc_init_surface = oc_3layer[:, 0].copy()  # used for water_retention / bulk_density deltas
 
     # ── Biochar amendment — C goes to IOM (stable, k≈0) ──────────────────
     # Biochar is pyrolytic carbon: >80% refractory, stable for 100-1000 years.
@@ -166,8 +168,9 @@ def simulate(
 
     # ── Output storage ────────────────────────────────────────────────────
     ts_keys = [
-        "total_soc", "erosion", "biodiversity", "canopy_cover",
+        "total_soc", "erosion", "water_retention", "bulk_density",
         "co2_emitted", "water_stress", "carbon_seq",
+        "mbc", "fb_ratio", "qco2", "amf_pct", "living_soil_index",
     ]
     timeseries = {f"{k}_{s}": [] for k in ts_keys for s in ("mean", "p10", "p90")}
     spatial_timeseries = {}
@@ -184,11 +187,18 @@ def simulate(
         # Collect per-ensemble outputs this year
         ens_soc   = np.zeros((n_ensemble, n_cells))
         ens_erode = np.zeros((n_ensemble, n_cells))
-        ens_bio   = np.zeros((n_ensemble, n_cells))
-        ens_can   = np.zeros((n_ensemble, n_cells))
+        ens_water = np.zeros((n_ensemble, n_cells))   # plant-available water retention (%)
+        ens_bdens = np.zeros((n_ensemble, n_cells))   # bulk density (t/m³)
+        ens_bio   = np.zeros((n_ensemble, n_cells))   # internal — used for erosion only
+        ens_can   = np.zeros((n_ensemble, n_cells))   # internal — used for erosion only
         ens_co2   = np.zeros((n_ensemble, n_cells))
         ens_wstr  = np.zeros((n_ensemble, n_cells))
         ens_cseq  = np.zeros((n_ensemble, n_cells))   # carbon sequestered vs baseline
+        ens_mbc   = np.zeros((n_ensemble, n_cells))   # microbial biomass C (g C/kg)
+        ens_fb    = np.zeros((n_ensemble, n_cells))   # fungal:bacterial ratio
+        ens_qco2  = np.zeros((n_ensemble, n_cells))   # metabolic quotient
+        ens_amf   = np.zeros((n_ensemble, n_cells))   # AMF colonisation %
+        ens_lsi   = np.zeros((n_ensemble, n_cells))   # Living Soil Index 0–100
 
         for e in range(n_ensemble):
             # 1. Climate with per-ensemble stochastic seed
@@ -261,7 +271,8 @@ def simulate(
             compost_add   = phil.get("compost_t_ha_yr", 0.0)
             compost_years = phil.get("compost_years", 5)   # None = perpetual
             if compost_add > 0 and (compost_years is None or yr_idx <= compost_years):
-                carbon_input_surface += compost_add * 0.15 * 0.238  # 15% C return, scaled to g/kg/yr
+                # Labile fraction routes through DPM/RPM (20% of compost C)
+                carbon_input_surface += compost_add * 0.20 * 0.238
 
             # Cover crop C_input during establishment (if specified in philosophy)
             # Cover crops: fast-growing annuals suppress weeds and add labile C during tree establishment
@@ -325,6 +336,15 @@ def simulate(
                 layer_co2       += co2_l
 
             pools_ens[e] = _flat_to_pools(layer_pools)
+
+            # Direct HUM increment for stabilised compost fraction.
+            # Mature compost has ~30% already-humified C that bypasses DPM/RPM
+            # decomposition and adds directly to the mineral-stabilised HUM pool.
+            # (Zech et al. 1997; Mäder et al. 2002 — Compost Science & Utilisation)
+            if compost_add > 0 and (compost_years is None or yr_idx <= compost_years):
+                hum_frac   = phil.get("compost_hum_fraction", 0.15)
+                hum_direct = compost_add * hum_frac * 0.238  # g/kg/yr → HUM directly
+                pools_ens[e]["HUM"][:, 0] += hum_direct
 
             # Apply fire effects to carbon pools
             # Fire affects surface LITTER (DPM/BIO) heavily but mineral soil
@@ -401,11 +421,47 @@ def simulate(
             # Deep layers contribute to spatial output but are excluded from the primary % metric.
             ens_soc[e]   = soc_all[:, 0]   # surface layer only (g/kg, 0-30cm)
             ens_erode[e] = erosion_flat
-            ens_bio[e]   = bio_new["bii"]
-            ens_can[e]   = veg_new["canopy_cover"]
+            ens_bio[e]   = bio_new["bii"]       # internal — aggregate_stability for erosion
+            ens_can[e]   = veg_new["canopy_cover"]  # internal
+
+            # Water retention: plant-available water adjusted for SOC change
+            # Hudson (1994) / Minasny & McBratney (2018): +0.005 m³/m³ per g/kg SOC
+            soc_delta = soc_all[:, 0] - soc_init_surface
+            water_ret = (awc_init + soc_delta * 0.005) * 100  # convert to % volumetric
+            ens_water[e] = np.clip(water_ret, 10, 40)
+
+            # Bulk density: decreases as SOC builds, increases under tillage compaction
+            # Empirical: ~-0.009 t/m³ per g/kg SOC increase (pedotransfer literature)
+            # Tillage compaction caps at ~0.08 t/m³ total (real-world measured max)
+            tillage_compaction = min(0.001 * yr_idx, 0.08) if sim_params.get("tillage", False) else 0.0
+            bd_current = bulk_density - soc_delta * 0.009 + tillage_compaction
+            ens_bdens[e] = np.clip(bd_current, 0.9, 1.65)
+
             ens_co2[e]   = layer_co2
             ens_wstr[e]  = water_result["water_stress"]
             # Carbon sequestration computed below (after _initial_mean_soc is set)
+
+            # ── Microbial indicators (derivation layer) ───────────────────
+            # Surface state snapshot after the carbon+biology steps for this
+            # ensemble member. Wraps RothC BIO pool + biology.mycorrhizal onto
+            # the four published indicator scales soil scientists actually use.
+            mi = compute_all_indicators(
+                soc_surface_g_kg=soc_all[:, 0],
+                clay_pct=clay_pct,
+                moisture_ratio=moisture_ratio,
+                temperature_c=climate["temp"],
+                rothc_bio_pool=pools_ens[e]["BIO"][:, 0],
+                co2_respiration_g_kg_yr=layer_co2,
+                soil_ph=soil_ph_init,
+                canopy_cover=veg_new["canopy_cover"],
+                mycorrhizal_state=bio_new["mycorrhizal"],
+                philosophy_params=sim_params,
+            )
+            ens_mbc[e]  = mi["mbc_g_kg"]
+            ens_fb[e]   = mi["fb_ratio"]
+            ens_qco2[e] = mi["qco2"]
+            ens_amf[e]  = mi["amf_pct"]
+            ens_lsi[e]  = mi["living_soil_index"]
 
             # Update states
             veg_ens[e]      = veg_new
@@ -437,7 +493,11 @@ def simulate(
             p90  = float(np.percentile(arr_ens, 90))
             return mean, p10, p90
 
-        for k, ens_arr in zip(ts_keys, [ens_soc, ens_erode, ens_bio, ens_can, ens_co2, ens_wstr, ens_cseq]):
+        for k, ens_arr in zip(
+            ts_keys,
+            [ens_soc, ens_erode, ens_water, ens_bdens, ens_co2, ens_wstr, ens_cseq,
+             ens_mbc, ens_fb, ens_qco2, ens_amf, ens_lsi],
+        ):
             m, lo, hi = _agg(ens_arr)
             timeseries[f"{k}_mean"].append(round(m, 4))
             timeseries[f"{k}_p10"].append(round(lo, 4))
@@ -451,11 +511,19 @@ def simulate(
             mean_can    = np.mean(ens_can, axis=0).reshape(rows, cols)
             mean_erode  = np.mean(ens_erode, axis=0).reshape(rows, cols)
             mean_bio    = np.mean(ens_bio, axis=0).reshape(rows, cols)
+            mean_lsi    = np.mean(ens_lsi, axis=0).reshape(rows, cols)
+            mean_mbc    = np.mean(ens_mbc, axis=0).reshape(rows, cols)
+            mean_fb     = np.mean(ens_fb,  axis=0).reshape(rows, cols)
+            mean_amf    = np.mean(ens_amf, axis=0).reshape(rows, cols)
             spatial_timeseries[snap_key] = {
-                "soc":         mean_soc.tolist(),
-                "canopy":      mean_can.tolist(),
-                "erosion":     mean_erode.tolist(),
+                "soc":          mean_soc.tolist(),
+                "canopy":       mean_can.tolist(),
+                "erosion":      mean_erode.tolist(),
                 "biodiversity": mean_bio.tolist(),
+                "living_soil_index": mean_lsi.tolist(),
+                "mbc":          mean_mbc.tolist(),
+                "fb_ratio":     mean_fb.tolist(),
+                "amf_pct":      mean_amf.tolist(),
             }
 
     # ── Final spatial output ──────────────────────────────────────────────

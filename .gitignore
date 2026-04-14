@@ -102,6 +102,7 @@ celerybeat.pid
 
 # Environments
 .env
+.env.local
 .venv
 env/
 venv/
@@ -130,3 +131,13 @@ dmypy.json
 # Uvicorn runtime logs
 uvicorn_out.txt
 uvicorn_err.txt
+
+# Phase 10 — Nano Banana generated assets (regenerable, don't bloat the repo)
+frontend/exhibition/assets/textures/*.png
+frontend/exhibition/assets/textures/*.jpg
+frontend/exhibition/assets/textures/*.webp
+backend/assets/anchor_candidates/
+frontend/exhibition/assets/videos/attract_loop.mp4
+
+# Keep the anchor_style.png itself — it IS committed (ground truth for style)
+!backend/assets/anchor_style.png

@@ -1,0 +1,17 @@
+# Template variables: {root_density}, {root_depth}
+
+Painterly overlay of a root system, to be composited on a dark background
+in a 3D scene. Style matches the anchor reference.
+
+Root density: {root_density} (low / medium / dense)
+Root depth: {root_depth} (shallow / medium / deep)
+
+The roots should look like hand-painted organic brushstrokes — warm honey
+and copper colors, tapering tips, fine hair-like secondary roots branching
+outward. They should have a faint inner glow as if lit from within. Not
+photorealistic — painterly and slightly magical.
+
+Transparent background. No soil, no ground, no sky. Just the roots.
+PNG with alpha. 1024x2048 (tall aspect, roots hanging down).
+
+No text. No labels.

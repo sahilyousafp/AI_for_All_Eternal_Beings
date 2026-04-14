@@ -1,0 +1,19 @@
+# Template variables: {philosophy}, {ssp}, {year_offset}, {degradation_level}
+# degradation_level is 0.0 (pristine) to 1.0 (dead)
+
+Painterly tileable ground texture in the same style as the reference image.
+Shows {philosophy} management after {year_offset} years under {ssp} climate.
+
+Soil character: {degradation_level}.
+  - 0.0 to 0.2: rich dark chocolate brown, visible root hairs, warm golden
+    highlights, dense organic matter, a faint inner glow
+  - 0.3 to 0.5: lighter brown, fewer roots, some cracks, muted colors
+  - 0.6 to 0.8: pale sandy color, visible cracks, sparse fragments of
+    dead roots, grey undertones
+  - 0.9 to 1.0: bleached grey-white, deep cracks, bone-dry, almost lunar
+
+Must tile seamlessly. No text, no labels, no borders.
+Oil painting texture, visible brush strokes. Match the anchor style
+exactly — this is one of many textures that will sit next to each other.
+
+Square 1024x1024.

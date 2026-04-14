@@ -1,0 +1,39 @@
+{
+  "_comment": "Phase 10 — all on-screen text for the 3D scenes. Plain language only. No jargon. Every label must pass the 'random visitor understands it in 3 seconds' test. Change these freely; code reads at runtime.",
+  "philosophies": {
+    "do_nothing": "IF WE KEEP DOING NOTHING",
+    "conventional": "IF WE KEEP FARMING THE WAY WE DO NOW",
+    "regenerative": "IF WE REGENERATE THE LAND",
+    "rewild": "IF WE LET NATURE TAKE IT BACK",
+    "over_farm": "IF WE OVER-FARM"
+  },
+  "ssp_short": {
+    "ssp1": "A cooler future",
+    "ssp2": "The middle of the road",
+    "ssp3": "A drought future",
+    "ssp5": "The hottest future"
+  },
+  "attract_loop": {
+    "intro": "Three futures. Same patch of ground. Fifty years.",
+    "outro": "TOUCH A COLUMN TO SEE WHY"
+  },
+  "scene_b": {
+    "title_template": "THIS IS WHAT {philosophy_verb} DOES TO THE GROUND IN {years} YEARS",
+    "slider_label": "Drag to move through time"
+  },
+  "scene_c_healthy": {
+    "title": "THE GROUND IS ALIVE",
+    "fact": "INSIDE ONE TEASPOON OF HEALTHY SOIL LIVES MORE LIFE THAN PEOPLE ON EARTH"
+  },
+  "scene_c_dying": {
+    "title": "THE GROUND IS EMPTY",
+    "fact": "THIS TEASPOON IS ALMOST DEAD"
+  },
+  "philosophy_verbs": {
+    "do_nothing": "DOING NOTHING",
+    "conventional": "TODAY'S FARMING",
+    "regenerative": "REGENERATION",
+    "rewild": "REWILDING",
+    "over_farm": "OVER-FARMING"
+  }
+}

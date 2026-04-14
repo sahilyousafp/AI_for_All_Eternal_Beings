@@ -1,0 +1,22 @@
+# Template variables: {particle_type}
+
+Painterly sprite sheet for use as GPU particles in a 3D soil microbiome
+scene. Match the anchor style reference exactly.
+
+Particle type: {particle_type}
+  - "bacteria": small round glowing orbs, warm yellow-gold, soft halos,
+    faint inner shimmer. 8 slight variations arranged in a 4x2 grid.
+  - "mycorrhizae": long threading filaments in honey-gold and copper,
+    with tiny pulses of light traveling along them. 4 variations stacked.
+  - "carbon": translucent pulsing spheres in warm amber, like honey drops
+    holding still light inside them. 6 variations in 3x2 grid.
+  - "water": sparkling sinuous streaks in cool silver-blue, like brushstrokes
+    of dewdrop light. 4 variations in a row.
+
+Each sprite on a fully transparent background (PNG alpha). Sprites are
+tightly cropped with 4px padding. Painterly, NOT pixelated, NOT cartoon.
+
+Match the anchor style: oil painting brush texture, warm lighting,
+Ghibli-meets-Biophilia palette.
+
+1024x1024.

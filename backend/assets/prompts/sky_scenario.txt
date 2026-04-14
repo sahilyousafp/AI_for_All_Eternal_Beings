@@ -1,0 +1,22 @@
+# Template variables: {ssp}, {mood_description}
+
+Painterly skyscape in Studio Ghibli / Björk Biophilia oil painting style.
+Matches the anchor style reference exactly.
+
+Climate future: {ssp}
+Mood: {mood_description}
+
+SSP1 (1.9 degrees): soft blue-green sky, gentle clouds, warm evening sun,
+  hopeful, like the first day of spring after a long winter.
+
+SSP2 (2.7 degrees): hazy golden sky, slightly smoke-tinted, uncertain,
+  the light before a storm that might or might not come.
+
+SSP3 (3.6 degrees): heavy ochre sky, low dust horizon, the color of a
+  long drought, the sun a pale disc behind the haze.
+
+SSP5 (4.4 degrees): violent red-orange sky, distant columns of smoke,
+  a sun too bright and too low, the earth beneath it bleached.
+
+Panoramic aspect, 2048x1024. No text. No buildings. No horizon detail —
+just atmosphere, clouds, and light. Oil painting brush texture.

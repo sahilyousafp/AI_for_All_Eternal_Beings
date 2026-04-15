@@ -1,0 +1,1474 @@
+{
+  "anchor": "anchor_style.png",
+  "assets": [
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "do_nothing",
+        "ssp": "ssp1",
+        "year_offset": 0,
+        "degradation_level": 0.3,
+        "filename": "ground_do_nothing_ssp1_y00.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_do_nothing_ssp1_y00.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "do_nothing",
+        "ssp": "ssp1",
+        "year_offset": 10,
+        "degradation_level": 0.35,
+        "filename": "ground_do_nothing_ssp1_y10.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_do_nothing_ssp1_y10.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "do_nothing",
+        "ssp": "ssp1",
+        "year_offset": 20,
+        "degradation_level": 0.4,
+        "filename": "ground_do_nothing_ssp1_y20.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_do_nothing_ssp1_y20.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "do_nothing",
+        "ssp": "ssp1",
+        "year_offset": 30,
+        "degradation_level": 0.45,
+        "filename": "ground_do_nothing_ssp1_y30.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_do_nothing_ssp1_y30.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "do_nothing",
+        "ssp": "ssp1",
+        "year_offset": 40,
+        "degradation_level": 0.5,
+        "filename": "ground_do_nothing_ssp1_y40.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_do_nothing_ssp1_y40.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "do_nothing",
+        "ssp": "ssp1",
+        "year_offset": 50,
+        "degradation_level": 0.55,
+        "filename": "ground_do_nothing_ssp1_y50.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_do_nothing_ssp1_y50.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "do_nothing",
+        "ssp": "ssp2",
+        "year_offset": 0,
+        "degradation_level": 0.3,
+        "filename": "ground_do_nothing_ssp2_y00.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_do_nothing_ssp2_y00.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "do_nothing",
+        "ssp": "ssp2",
+        "year_offset": 10,
+        "degradation_level": 0.35,
+        "filename": "ground_do_nothing_ssp2_y10.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_do_nothing_ssp2_y10.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "do_nothing",
+        "ssp": "ssp2",
+        "year_offset": 20,
+        "degradation_level": 0.4,
+        "filename": "ground_do_nothing_ssp2_y20.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_do_nothing_ssp2_y20.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "do_nothing",
+        "ssp": "ssp2",
+        "year_offset": 30,
+        "degradation_level": 0.45,
+        "filename": "ground_do_nothing_ssp2_y30.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_do_nothing_ssp2_y30.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "do_nothing",
+        "ssp": "ssp2",
+        "year_offset": 40,
+        "degradation_level": 0.5,
+        "filename": "ground_do_nothing_ssp2_y40.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_do_nothing_ssp2_y40.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "do_nothing",
+        "ssp": "ssp2",
+        "year_offset": 50,
+        "degradation_level": 0.55,
+        "filename": "ground_do_nothing_ssp2_y50.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_do_nothing_ssp2_y50.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "do_nothing",
+        "ssp": "ssp3",
+        "year_offset": 0,
+        "degradation_level": 0.3,
+        "filename": "ground_do_nothing_ssp3_y00.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_do_nothing_ssp3_y00.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "do_nothing",
+        "ssp": "ssp3",
+        "year_offset": 10,
+        "degradation_level": 0.35,
+        "filename": "ground_do_nothing_ssp3_y10.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_do_nothing_ssp3_y10.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "do_nothing",
+        "ssp": "ssp3",
+        "year_offset": 20,
+        "degradation_level": 0.4,
+        "filename": "ground_do_nothing_ssp3_y20.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_do_nothing_ssp3_y20.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "do_nothing",
+        "ssp": "ssp3",
+        "year_offset": 30,
+        "degradation_level": 0.45,
+        "filename": "ground_do_nothing_ssp3_y30.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_do_nothing_ssp3_y30.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "do_nothing",
+        "ssp": "ssp3",
+        "year_offset": 40,
+        "degradation_level": 0.5,
+        "filename": "ground_do_nothing_ssp3_y40.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_do_nothing_ssp3_y40.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "do_nothing",
+        "ssp": "ssp3",
+        "year_offset": 50,
+        "degradation_level": 0.55,
+        "filename": "ground_do_nothing_ssp3_y50.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_do_nothing_ssp3_y50.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "do_nothing",
+        "ssp": "ssp5",
+        "year_offset": 0,
+        "degradation_level": 0.3,
+        "filename": "ground_do_nothing_ssp5_y00.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_do_nothing_ssp5_y00.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "do_nothing",
+        "ssp": "ssp5",
+        "year_offset": 10,
+        "degradation_level": 0.35,
+        "filename": "ground_do_nothing_ssp5_y10.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_do_nothing_ssp5_y10.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "do_nothing",
+        "ssp": "ssp5",
+        "year_offset": 20,
+        "degradation_level": 0.4,
+        "filename": "ground_do_nothing_ssp5_y20.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_do_nothing_ssp5_y20.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "do_nothing",
+        "ssp": "ssp5",
+        "year_offset": 30,
+        "degradation_level": 0.45,
+        "filename": "ground_do_nothing_ssp5_y30.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_do_nothing_ssp5_y30.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "do_nothing",
+        "ssp": "ssp5",
+        "year_offset": 40,
+        "degradation_level": 0.5,
+        "filename": "ground_do_nothing_ssp5_y40.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_do_nothing_ssp5_y40.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "do_nothing",
+        "ssp": "ssp5",
+        "year_offset": 50,
+        "degradation_level": 0.55,
+        "filename": "ground_do_nothing_ssp5_y50.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_do_nothing_ssp5_y50.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "conventional",
+        "ssp": "ssp1",
+        "year_offset": 0,
+        "degradation_level": 0.25,
+        "filename": "ground_conventional_ssp1_y00.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_conventional_ssp1_y00.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "conventional",
+        "ssp": "ssp1",
+        "year_offset": 10,
+        "degradation_level": 0.35,
+        "filename": "ground_conventional_ssp1_y10.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_conventional_ssp1_y10.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "conventional",
+        "ssp": "ssp1",
+        "year_offset": 20,
+        "degradation_level": 0.45,
+        "filename": "ground_conventional_ssp1_y20.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_conventional_ssp1_y20.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "conventional",
+        "ssp": "ssp1",
+        "year_offset": 30,
+        "degradation_level": 0.55,
+        "filename": "ground_conventional_ssp1_y30.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_conventional_ssp1_y30.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "conventional",
+        "ssp": "ssp1",
+        "year_offset": 40,
+        "degradation_level": 0.65,
+        "filename": "ground_conventional_ssp1_y40.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_conventional_ssp1_y40.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "conventional",
+        "ssp": "ssp1",
+        "year_offset": 50,
+        "degradation_level": 0.75,
+        "filename": "ground_conventional_ssp1_y50.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_conventional_ssp1_y50.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "conventional",
+        "ssp": "ssp2",
+        "year_offset": 0,
+        "degradation_level": 0.25,
+        "filename": "ground_conventional_ssp2_y00.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_conventional_ssp2_y00.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "conventional",
+        "ssp": "ssp2",
+        "year_offset": 10,
+        "degradation_level": 0.35,
+        "filename": "ground_conventional_ssp2_y10.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_conventional_ssp2_y10.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "conventional",
+        "ssp": "ssp2",
+        "year_offset": 20,
+        "degradation_level": 0.45,
+        "filename": "ground_conventional_ssp2_y20.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_conventional_ssp2_y20.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "conventional",
+        "ssp": "ssp2",
+        "year_offset": 30,
+        "degradation_level": 0.55,
+        "filename": "ground_conventional_ssp2_y30.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_conventional_ssp2_y30.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "conventional",
+        "ssp": "ssp2",
+        "year_offset": 40,
+        "degradation_level": 0.65,
+        "filename": "ground_conventional_ssp2_y40.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_conventional_ssp2_y40.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "conventional",
+        "ssp": "ssp2",
+        "year_offset": 50,
+        "degradation_level": 0.75,
+        "filename": "ground_conventional_ssp2_y50.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_conventional_ssp2_y50.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "conventional",
+        "ssp": "ssp3",
+        "year_offset": 0,
+        "degradation_level": 0.25,
+        "filename": "ground_conventional_ssp3_y00.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_conventional_ssp3_y00.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "conventional",
+        "ssp": "ssp3",
+        "year_offset": 10,
+        "degradation_level": 0.35,
+        "filename": "ground_conventional_ssp3_y10.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_conventional_ssp3_y10.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "conventional",
+        "ssp": "ssp3",
+        "year_offset": 20,
+        "degradation_level": 0.45,
+        "filename": "ground_conventional_ssp3_y20.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_conventional_ssp3_y20.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "conventional",
+        "ssp": "ssp3",
+        "year_offset": 30,
+        "degradation_level": 0.55,
+        "filename": "ground_conventional_ssp3_y30.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_conventional_ssp3_y30.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "conventional",
+        "ssp": "ssp3",
+        "year_offset": 40,
+        "degradation_level": 0.65,
+        "filename": "ground_conventional_ssp3_y40.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_conventional_ssp3_y40.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "conventional",
+        "ssp": "ssp3",
+        "year_offset": 50,
+        "degradation_level": 0.75,
+        "filename": "ground_conventional_ssp3_y50.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_conventional_ssp3_y50.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "conventional",
+        "ssp": "ssp5",
+        "year_offset": 0,
+        "degradation_level": 0.25,
+        "filename": "ground_conventional_ssp5_y00.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_conventional_ssp5_y00.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "conventional",
+        "ssp": "ssp5",
+        "year_offset": 10,
+        "degradation_level": 0.35,
+        "filename": "ground_conventional_ssp5_y10.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_conventional_ssp5_y10.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "conventional",
+        "ssp": "ssp5",
+        "year_offset": 20,
+        "degradation_level": 0.45,
+        "filename": "ground_conventional_ssp5_y20.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_conventional_ssp5_y20.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "conventional",
+        "ssp": "ssp5",
+        "year_offset": 30,
+        "degradation_level": 0.55,
+        "filename": "ground_conventional_ssp5_y30.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_conventional_ssp5_y30.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "conventional",
+        "ssp": "ssp5",
+        "year_offset": 40,
+        "degradation_level": 0.65,
+        "filename": "ground_conventional_ssp5_y40.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_conventional_ssp5_y40.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "conventional",
+        "ssp": "ssp5",
+        "year_offset": 50,
+        "degradation_level": 0.75,
+        "filename": "ground_conventional_ssp5_y50.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_conventional_ssp5_y50.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "regenerative",
+        "ssp": "ssp1",
+        "year_offset": 0,
+        "degradation_level": 0.4,
+        "filename": "ground_regenerative_ssp1_y00.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_regenerative_ssp1_y00.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "regenerative",
+        "ssp": "ssp1",
+        "year_offset": 10,
+        "degradation_level": 0.3,
+        "filename": "ground_regenerative_ssp1_y10.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_regenerative_ssp1_y10.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "regenerative",
+        "ssp": "ssp1",
+        "year_offset": 20,
+        "degradation_level": 0.2,
+        "filename": "ground_regenerative_ssp1_y20.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_regenerative_ssp1_y20.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "regenerative",
+        "ssp": "ssp1",
+        "year_offset": 30,
+        "degradation_level": 0.15,
+        "filename": "ground_regenerative_ssp1_y30.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_regenerative_ssp1_y30.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "regenerative",
+        "ssp": "ssp1",
+        "year_offset": 40,
+        "degradation_level": 0.1,
+        "filename": "ground_regenerative_ssp1_y40.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_regenerative_ssp1_y40.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "regenerative",
+        "ssp": "ssp1",
+        "year_offset": 50,
+        "degradation_level": 0.05,
+        "filename": "ground_regenerative_ssp1_y50.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_regenerative_ssp1_y50.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "regenerative",
+        "ssp": "ssp2",
+        "year_offset": 0,
+        "degradation_level": 0.4,
+        "filename": "ground_regenerative_ssp2_y00.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_regenerative_ssp2_y00.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "regenerative",
+        "ssp": "ssp2",
+        "year_offset": 10,
+        "degradation_level": 0.3,
+        "filename": "ground_regenerative_ssp2_y10.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_regenerative_ssp2_y10.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "regenerative",
+        "ssp": "ssp2",
+        "year_offset": 20,
+        "degradation_level": 0.2,
+        "filename": "ground_regenerative_ssp2_y20.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_regenerative_ssp2_y20.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "regenerative",
+        "ssp": "ssp2",
+        "year_offset": 30,
+        "degradation_level": 0.15,
+        "filename": "ground_regenerative_ssp2_y30.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_regenerative_ssp2_y30.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "regenerative",
+        "ssp": "ssp2",
+        "year_offset": 40,
+        "degradation_level": 0.1,
+        "filename": "ground_regenerative_ssp2_y40.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_regenerative_ssp2_y40.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "regenerative",
+        "ssp": "ssp2",
+        "year_offset": 50,
+        "degradation_level": 0.05,
+        "filename": "ground_regenerative_ssp2_y50.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_regenerative_ssp2_y50.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "regenerative",
+        "ssp": "ssp3",
+        "year_offset": 0,
+        "degradation_level": 0.4,
+        "filename": "ground_regenerative_ssp3_y00.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_regenerative_ssp3_y00.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "regenerative",
+        "ssp": "ssp3",
+        "year_offset": 10,
+        "degradation_level": 0.3,
+        "filename": "ground_regenerative_ssp3_y10.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_regenerative_ssp3_y10.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "regenerative",
+        "ssp": "ssp3",
+        "year_offset": 20,
+        "degradation_level": 0.2,
+        "filename": "ground_regenerative_ssp3_y20.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_regenerative_ssp3_y20.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "regenerative",
+        "ssp": "ssp3",
+        "year_offset": 30,
+        "degradation_level": 0.15,
+        "filename": "ground_regenerative_ssp3_y30.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_regenerative_ssp3_y30.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "regenerative",
+        "ssp": "ssp3",
+        "year_offset": 40,
+        "degradation_level": 0.1,
+        "filename": "ground_regenerative_ssp3_y40.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_regenerative_ssp3_y40.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "regenerative",
+        "ssp": "ssp3",
+        "year_offset": 50,
+        "degradation_level": 0.05,
+        "filename": "ground_regenerative_ssp3_y50.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_regenerative_ssp3_y50.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "regenerative",
+        "ssp": "ssp5",
+        "year_offset": 0,
+        "degradation_level": 0.4,
+        "filename": "ground_regenerative_ssp5_y00.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_regenerative_ssp5_y00.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "regenerative",
+        "ssp": "ssp5",
+        "year_offset": 10,
+        "degradation_level": 0.3,
+        "filename": "ground_regenerative_ssp5_y10.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_regenerative_ssp5_y10.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "regenerative",
+        "ssp": "ssp5",
+        "year_offset": 20,
+        "degradation_level": 0.2,
+        "filename": "ground_regenerative_ssp5_y20.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_regenerative_ssp5_y20.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "regenerative",
+        "ssp": "ssp5",
+        "year_offset": 30,
+        "degradation_level": 0.15,
+        "filename": "ground_regenerative_ssp5_y30.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_regenerative_ssp5_y30.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "regenerative",
+        "ssp": "ssp5",
+        "year_offset": 40,
+        "degradation_level": 0.1,
+        "filename": "ground_regenerative_ssp5_y40.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_regenerative_ssp5_y40.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "regenerative",
+        "ssp": "ssp5",
+        "year_offset": 50,
+        "degradation_level": 0.05,
+        "filename": "ground_regenerative_ssp5_y50.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_regenerative_ssp5_y50.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "rewild",
+        "ssp": "ssp1",
+        "year_offset": 0,
+        "degradation_level": 0.5,
+        "filename": "ground_rewild_ssp1_y00.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_rewild_ssp1_y00.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "rewild",
+        "ssp": "ssp1",
+        "year_offset": 10,
+        "degradation_level": 0.4,
+        "filename": "ground_rewild_ssp1_y10.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_rewild_ssp1_y10.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "rewild",
+        "ssp": "ssp1",
+        "year_offset": 20,
+        "degradation_level": 0.3,
+        "filename": "ground_rewild_ssp1_y20.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_rewild_ssp1_y20.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "rewild",
+        "ssp": "ssp1",
+        "year_offset": 30,
+        "degradation_level": 0.2,
+        "filename": "ground_rewild_ssp1_y30.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_rewild_ssp1_y30.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "rewild",
+        "ssp": "ssp1",
+        "year_offset": 40,
+        "degradation_level": 0.15,
+        "filename": "ground_rewild_ssp1_y40.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_rewild_ssp1_y40.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "rewild",
+        "ssp": "ssp1",
+        "year_offset": 50,
+        "degradation_level": 0.1,
+        "filename": "ground_rewild_ssp1_y50.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_rewild_ssp1_y50.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "rewild",
+        "ssp": "ssp2",
+        "year_offset": 0,
+        "degradation_level": 0.5,
+        "filename": "ground_rewild_ssp2_y00.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_rewild_ssp2_y00.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "rewild",
+        "ssp": "ssp2",
+        "year_offset": 10,
+        "degradation_level": 0.4,
+        "filename": "ground_rewild_ssp2_y10.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_rewild_ssp2_y10.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "rewild",
+        "ssp": "ssp2",
+        "year_offset": 20,
+        "degradation_level": 0.3,
+        "filename": "ground_rewild_ssp2_y20.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_rewild_ssp2_y20.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "rewild",
+        "ssp": "ssp2",
+        "year_offset": 30,
+        "degradation_level": 0.2,
+        "filename": "ground_rewild_ssp2_y30.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_rewild_ssp2_y30.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "rewild",
+        "ssp": "ssp2",
+        "year_offset": 40,
+        "degradation_level": 0.15,
+        "filename": "ground_rewild_ssp2_y40.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_rewild_ssp2_y40.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "rewild",
+        "ssp": "ssp2",
+        "year_offset": 50,
+        "degradation_level": 0.1,
+        "filename": "ground_rewild_ssp2_y50.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_rewild_ssp2_y50.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "rewild",
+        "ssp": "ssp3",
+        "year_offset": 0,
+        "degradation_level": 0.5,
+        "filename": "ground_rewild_ssp3_y00.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_rewild_ssp3_y00.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "rewild",
+        "ssp": "ssp3",
+        "year_offset": 10,
+        "degradation_level": 0.4,
+        "filename": "ground_rewild_ssp3_y10.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_rewild_ssp3_y10.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "rewild",
+        "ssp": "ssp3",
+        "year_offset": 20,
+        "degradation_level": 0.3,
+        "filename": "ground_rewild_ssp3_y20.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_rewild_ssp3_y20.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "rewild",
+        "ssp": "ssp3",
+        "year_offset": 30,
+        "degradation_level": 0.2,
+        "filename": "ground_rewild_ssp3_y30.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_rewild_ssp3_y30.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "rewild",
+        "ssp": "ssp3",
+        "year_offset": 40,
+        "degradation_level": 0.15,
+        "filename": "ground_rewild_ssp3_y40.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_rewild_ssp3_y40.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "rewild",
+        "ssp": "ssp3",
+        "year_offset": 50,
+        "degradation_level": 0.1,
+        "filename": "ground_rewild_ssp3_y50.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_rewild_ssp3_y50.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "rewild",
+        "ssp": "ssp5",
+        "year_offset": 0,
+        "degradation_level": 0.5,
+        "filename": "ground_rewild_ssp5_y00.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_rewild_ssp5_y00.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "rewild",
+        "ssp": "ssp5",
+        "year_offset": 10,
+        "degradation_level": 0.4,
+        "filename": "ground_rewild_ssp5_y10.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_rewild_ssp5_y10.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "rewild",
+        "ssp": "ssp5",
+        "year_offset": 20,
+        "degradation_level": 0.3,
+        "filename": "ground_rewild_ssp5_y20.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_rewild_ssp5_y20.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "rewild",
+        "ssp": "ssp5",
+        "year_offset": 30,
+        "degradation_level": 0.2,
+        "filename": "ground_rewild_ssp5_y30.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_rewild_ssp5_y30.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "rewild",
+        "ssp": "ssp5",
+        "year_offset": 40,
+        "degradation_level": 0.15,
+        "filename": "ground_rewild_ssp5_y40.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_rewild_ssp5_y40.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "rewild",
+        "ssp": "ssp5",
+        "year_offset": 50,
+        "degradation_level": 0.1,
+        "filename": "ground_rewild_ssp5_y50.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_rewild_ssp5_y50.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "over_farm",
+        "ssp": "ssp1",
+        "year_offset": 0,
+        "degradation_level": 0.3,
+        "filename": "ground_over_farm_ssp1_y00.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_over_farm_ssp1_y00.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "over_farm",
+        "ssp": "ssp1",
+        "year_offset": 10,
+        "degradation_level": 0.5,
+        "filename": "ground_over_farm_ssp1_y10.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_over_farm_ssp1_y10.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "over_farm",
+        "ssp": "ssp1",
+        "year_offset": 20,
+        "degradation_level": 0.65,
+        "filename": "ground_over_farm_ssp1_y20.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_over_farm_ssp1_y20.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "over_farm",
+        "ssp": "ssp1",
+        "year_offset": 30,
+        "degradation_level": 0.8,
+        "filename": "ground_over_farm_ssp1_y30.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_over_farm_ssp1_y30.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "over_farm",
+        "ssp": "ssp1",
+        "year_offset": 40,
+        "degradation_level": 0.9,
+        "filename": "ground_over_farm_ssp1_y40.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_over_farm_ssp1_y40.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "over_farm",
+        "ssp": "ssp1",
+        "year_offset": 50,
+        "degradation_level": 0.95,
+        "filename": "ground_over_farm_ssp1_y50.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_over_farm_ssp1_y50.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "over_farm",
+        "ssp": "ssp2",
+        "year_offset": 0,
+        "degradation_level": 0.3,
+        "filename": "ground_over_farm_ssp2_y00.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_over_farm_ssp2_y00.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "over_farm",
+        "ssp": "ssp2",
+        "year_offset": 10,
+        "degradation_level": 0.5,
+        "filename": "ground_over_farm_ssp2_y10.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_over_farm_ssp2_y10.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "over_farm",
+        "ssp": "ssp2",
+        "year_offset": 20,
+        "degradation_level": 0.65,
+        "filename": "ground_over_farm_ssp2_y20.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_over_farm_ssp2_y20.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "over_farm",
+        "ssp": "ssp2",
+        "year_offset": 30,
+        "degradation_level": 0.8,
+        "filename": "ground_over_farm_ssp2_y30.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_over_farm_ssp2_y30.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "over_farm",
+        "ssp": "ssp2",
+        "year_offset": 40,
+        "degradation_level": 0.9,
+        "filename": "ground_over_farm_ssp2_y40.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_over_farm_ssp2_y40.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "over_farm",
+        "ssp": "ssp2",
+        "year_offset": 50,
+        "degradation_level": 0.95,
+        "filename": "ground_over_farm_ssp2_y50.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_over_farm_ssp2_y50.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "over_farm",
+        "ssp": "ssp3",
+        "year_offset": 0,
+        "degradation_level": 0.3,
+        "filename": "ground_over_farm_ssp3_y00.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_over_farm_ssp3_y00.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "over_farm",
+        "ssp": "ssp3",
+        "year_offset": 10,
+        "degradation_level": 0.5,
+        "filename": "ground_over_farm_ssp3_y10.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_over_farm_ssp3_y10.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "over_farm",
+        "ssp": "ssp3",
+        "year_offset": 20,
+        "degradation_level": 0.65,
+        "filename": "ground_over_farm_ssp3_y20.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_over_farm_ssp3_y20.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "over_farm",
+        "ssp": "ssp3",
+        "year_offset": 30,
+        "degradation_level": 0.8,
+        "filename": "ground_over_farm_ssp3_y30.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_over_farm_ssp3_y30.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "over_farm",
+        "ssp": "ssp3",
+        "year_offset": 40,
+        "degradation_level": 0.9,
+        "filename": "ground_over_farm_ssp3_y40.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_over_farm_ssp3_y40.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "over_farm",
+        "ssp": "ssp3",
+        "year_offset": 50,
+        "degradation_level": 0.95,
+        "filename": "ground_over_farm_ssp3_y50.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_over_farm_ssp3_y50.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "over_farm",
+        "ssp": "ssp5",
+        "year_offset": 0,
+        "degradation_level": 0.3,
+        "filename": "ground_over_farm_ssp5_y00.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_over_farm_ssp5_y00.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "over_farm",
+        "ssp": "ssp5",
+        "year_offset": 10,
+        "degradation_level": 0.5,
+        "filename": "ground_over_farm_ssp5_y10.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_over_farm_ssp5_y10.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "over_farm",
+        "ssp": "ssp5",
+        "year_offset": 20,
+        "degradation_level": 0.65,
+        "filename": "ground_over_farm_ssp5_y20.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_over_farm_ssp5_y20.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "over_farm",
+        "ssp": "ssp5",
+        "year_offset": 30,
+        "degradation_level": 0.8,
+        "filename": "ground_over_farm_ssp5_y30.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_over_farm_ssp5_y30.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "over_farm",
+        "ssp": "ssp5",
+        "year_offset": 40,
+        "degradation_level": 0.9,
+        "filename": "ground_over_farm_ssp5_y40.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_over_farm_ssp5_y40.png"
+    },
+    {
+      "job": {
+        "kind": "ground",
+        "philosophy": "over_farm",
+        "ssp": "ssp5",
+        "year_offset": 50,
+        "degradation_level": 0.95,
+        "filename": "ground_over_farm_ssp5_y50.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\ground_over_farm_ssp5_y50.png"
+    },
+    {
+      "job": {
+        "kind": "sky",
+        "ssp": "ssp1",
+        "mood_description": "hopeful cool spring, 1.9\u00b0C",
+        "filename": "sky_ssp1.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\sky_ssp1.png"
+    },
+    {
+      "job": {
+        "kind": "sky",
+        "ssp": "ssp2",
+        "mood_description": "uncertain hazy golden, 2.7\u00b0C",
+        "filename": "sky_ssp2.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\sky_ssp2.png"
+    },
+    {
+      "job": {
+        "kind": "sky",
+        "ssp": "ssp3",
+        "mood_description": "drought ochre dust, 3.6\u00b0C",
+        "filename": "sky_ssp3.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\sky_ssp3.png"
+    },
+    {
+      "job": {
+        "kind": "sky",
+        "ssp": "ssp5",
+        "mood_description": "violent red-orange heat, 4.4\u00b0C",
+        "filename": "sky_ssp5.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\sky_ssp5.png"
+    },
+    {
+      "job": {
+        "kind": "root",
+        "root_density": "low",
+        "root_depth": "shallow",
+        "filename": "roots_low_shallow.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\roots_low_shallow.png"
+    },
+    {
+      "job": {
+        "kind": "root",
+        "root_density": "low",
+        "root_depth": "medium",
+        "filename": "roots_low_medium.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\roots_low_medium.png"
+    },
+    {
+      "job": {
+        "kind": "root",
+        "root_density": "low",
+        "root_depth": "deep",
+        "filename": "roots_low_deep.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\roots_low_deep.png"
+    },
+    {
+      "job": {
+        "kind": "root",
+        "root_density": "medium",
+        "root_depth": "shallow",
+        "filename": "roots_medium_shallow.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\roots_medium_shallow.png"
+    },
+    {
+      "job": {
+        "kind": "root",
+        "root_density": "medium",
+        "root_depth": "medium",
+        "filename": "roots_medium_medium.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\roots_medium_medium.png"
+    },
+    {
+      "job": {
+        "kind": "root",
+        "root_density": "medium",
+        "root_depth": "deep",
+        "filename": "roots_medium_deep.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\roots_medium_deep.png"
+    },
+    {
+      "job": {
+        "kind": "root",
+        "root_density": "dense",
+        "root_depth": "shallow",
+        "filename": "roots_dense_shallow.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\roots_dense_shallow.png"
+    },
+    {
+      "job": {
+        "kind": "root",
+        "root_density": "dense",
+        "root_depth": "medium",
+        "filename": "roots_dense_medium.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\roots_dense_medium.png"
+    },
+    {
+      "job": {
+        "kind": "root",
+        "root_density": "dense",
+        "root_depth": "deep",
+        "filename": "roots_dense_deep.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\roots_dense_deep.png"
+    },
+    {
+      "job": {
+        "kind": "particle",
+        "particle_type": "bacteria",
+        "filename": "particle_bacteria.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\particle_bacteria.png"
+    },
+    {
+      "job": {
+        "kind": "particle",
+        "particle_type": "mycorrhizae",
+        "filename": "particle_mycorrhizae.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\particle_mycorrhizae.png"
+    },
+    {
+      "job": {
+        "kind": "particle",
+        "particle_type": "carbon",
+        "filename": "particle_carbon.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\particle_carbon.png"
+    },
+    {
+      "job": {
+        "kind": "particle",
+        "particle_type": "water",
+        "filename": "particle_water.png"
+      },
+      "path": "frontend\\exhibition\\assets\\textures\\particle_water.png"
+    }
+  ]
+}

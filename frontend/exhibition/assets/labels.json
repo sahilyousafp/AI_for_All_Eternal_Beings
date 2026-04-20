@@ -13,27 +13,39 @@
     "ssp3": "A drought future",
     "ssp5": "The hottest future"
   },
+  "facts": [
+    "One teaspoon of healthy soil holds more living things than there are people on Earth.",
+    "Soil stores three times more carbon than all the air in the atmosphere combined.",
+    "It takes nature 1,000 years to make 3 cm of topsoil — we can lose it in five.",
+    "A single earthworm moves up to 9 kg of soil per year, ploughing it for free.",
+    "Healthy soil holds water like a sponge: up to 20 times its own weight.",
+    "Half of all the carbon stored on land lives underground, in roots and soil.",
+    "One gram of soil can contain over a billion bacteria — a city under your fingernail.",
+    "Beneath one footstep of forest, fungal threads stretch for kilometers like an underground internet.",
+    "More species live in a handful of garden soil than in all the trees above it.",
+    "If soil microbes vanished, every plant on Earth would die within a year."
+  ],
   "attract_loop": {
-    "intro": "Three futures. Same patch of ground. Fifty years.",
-    "outro": "TOUCH A COLUMN TO SEE WHY"
+    "intro": "Three patches of ground. Same place. Same fifty years. Three very different futures.",
+    "outro": "TOUCH A COLUMN"
   },
   "scene_b": {
-    "title_template": "THIS IS WHAT {philosophy_verb} DOES TO THE GROUND IN {years} YEARS",
+    "title_template": "{years} years of {philosophy_verb}",
     "slider_label": "Drag to move through time"
   },
   "scene_c_healthy": {
-    "title": "THE GROUND IS ALIVE",
-    "fact": "INSIDE ONE TEASPOON OF HEALTHY SOIL LIVES MORE LIFE THAN PEOPLE ON EARTH"
+    "title": "The ground is alive.",
+    "fact": "One teaspoon of this soil holds more living things than there are people on Earth."
   },
   "scene_c_dying": {
-    "title": "THE GROUND IS EMPTY",
-    "fact": "THIS TEASPOON IS ALMOST DEAD"
+    "title": "The ground is empty.",
+    "fact": "When soil dies it stops being soil — it becomes dust the wind carries away."
   },
   "philosophy_verbs": {
-    "do_nothing": "DOING NOTHING",
-    "conventional": "TODAY'S FARMING",
-    "regenerative": "REGENERATION",
-    "rewild": "REWILDING",
-    "over_farm": "OVER-FARMING"
+    "do_nothing": "doing nothing",
+    "conventional": "today's farming",
+    "regenerative": "regeneration",
+    "rewild": "rewilding",
+    "over_farm": "over-farming"
   }
 }

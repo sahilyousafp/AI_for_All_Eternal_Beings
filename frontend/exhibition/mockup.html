@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Soil Futures — Hero Scene Mockup</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&display=swap">
+  <style>
+    :root {
+      --bg: #08090b;
+      --surface: #12151b;
+      --surface-2: #171b23;
+      --border: #242a35;
+      --border-soft: #1b2028;
+      --text: #edeff3;
+      --text-dim: #aeb4c0;
+      --muted: #6b7280;
+      --accent: #a3e635;
+      --accent-warm: #f59e0b;
+      --accent-hot: #ef4444;
+      --accent-cool: #22d3ee;
+      --gradient-life: linear-gradient(135deg, #a3e635 0%, #22d3ee 100%);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: radial-gradient(ellipse at top, #0d1218 0%, #06070a 60%);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2rem;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .mockup-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .mockup-header .eyebrow {
+      display: inline-block;
+      padding: 0.35rem 0.9rem; border-radius: 999px;
+      background: rgba(163,230,53,0.08);
+      border: 1px solid rgba(163,230,53,0.25);
+      color: var(--accent);
+      font-size: 0.72rem; font-weight: 500;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+    .mockup-header h1 {
+      font-family: 'Fraunces', serif;
+      font-size: 2.4rem; font-weight: 600;
+      letter-spacing: -0.02em; line-height: 1.1;
+    }
+    .mockup-header h1 .accent {
+      background: var(--gradient-life);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      font-style: italic;
+    }
+    .mockup-header p {
+      color: var(--text-dim);
+      font-size: 1rem;
+      max-width: 640px;
+      margin: 0.8rem auto 0;
+      line-height: 1.55;
+    }
+
+    .combo-bar {
+      max-width: 1200px; margin: 0 auto 1.5rem;
+      display: flex; gap: 1rem; align-items: center;
+      padding: 1rem 1.25rem;
+      background: var(--surface);
+      border: 1px solid var(--border-soft);
+      border-radius: 12px;
+    }
+    .combo-bar .combo { flex: 1; }
+    .combo-bar .combo-label {
+      font-size: 0.72rem; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .combo-bar .combo-value {
+      font-family: 'Fraunces', serif;
+      font-size: 1.15rem; font-weight: 600;
+      margin-top: 0.15rem;
+    }
+    .combo-bar .combo-value .icon {
+      margin-right: 0.4rem;
+    }
+
+    /* ─── The hero scene ─── */
+    .hero-scene {
+      max-width: 1280px; margin: 0 auto;
+      padding: 2.25rem 2rem 2rem;
+      background:
+        radial-gradient(ellipse at top, rgba(163,230,53,0.04), transparent 60%),
+        linear-gradient(180deg, #0f1218 0%, #08090d 100%);
+      border: 1px solid var(--border-soft);
+      border-radius: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-scene::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: var(--gradient-life);
+    }
+    .hero-title {
+      font-family: 'Fraunces', serif;
+      font-size: 1.55rem; font-weight: 600;
+      letter-spacing: -0.015em;
+      text-align: center;
+    }
+    .hero-sub {
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 0.93rem;
+      margin: 0.4rem auto 2rem;
+      max-width: 720px; line-height: 1.5;
+    }
+
+    /* 4-column grid: depth axis + 3 soil columns */
+    .stage {
+      display: grid;
+      grid-template-columns: 70px 1fr 1fr 1fr;
+      gap: 1rem;
+      align-items: stretch;
+    }
+
+    /* Depth axis down the left side */
+    .depth-axis {
+      display: flex; flex-direction: column;
+      justify-content: space-between;
+      padding: 200px 0 70px 0;     /* top padding matches canopy height */
+      font-size: 0.72rem;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+    .depth-axis .depth-tick {
+      font-weight: 600;
+      color: var(--text-dim);
+      padding-right: 0.5rem;
+      border-right: 1px solid var(--border-soft);
+      line-height: 1;
+    }
+
+    /* One soil column card */
+    .col {
+      display: flex; flex-direction: column;
+      align-items: stretch;
+      background: rgba(0,0,0,0.25);
+      border: 1px solid var(--border-soft);
+      border-radius: 14px;
+      padding: 1rem 1rem 0.8rem;
+      position: relative;
+    }
+    .col.selected {
+      border-color: var(--accent);
+      box-shadow: 0 0 40px -10px rgba(163,230,53,0.35);
+    }
+    .col .col-year {
+      font-size: 0.7rem; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.1em;
+      margin-bottom: 0.2rem;
+    }
+    .col .col-title {
+      font-family: 'Fraunces', serif;
+      font-size: 1.1rem; font-weight: 600;
+      margin-bottom: 0.85rem;
+    }
+
+    /* Canopy area ABOVE the column — trees silhouette */
+    .col .canopy {
+      position: relative;
+      height: 200px;
+      overflow: hidden;
+      border-radius: 8px 8px 0 0;
+      background: linear-gradient(180deg, #0a1115 0%, #0a1115 55%, #0e1a1f 100%);
+      display: flex; align-items: flex-end;
+      justify-content: center;
+      padding-bottom: 4px;
+    }
+    .col .canopy svg { width: 100%; height: 100%; display: block; }
+
+    /* Ghost erosion strip — floats ABOVE the soil, below canopy */
+    .col .erosion-ghost {
+      height: 0;
+      background: repeating-linear-gradient(
+        135deg,
+        rgba(180,180,180,0.18) 0 4px,
+        rgba(140,140,140,0.08) 4px 8px
+      );
+      border-top: 1px dashed rgba(255,255,255,0.12);
+      border-bottom: 1px dashed rgba(255,255,255,0.12);
+      display: flex; align-items: center; justify-content: flex-end;
+      padding-right: 0.6rem;
+      font-size: 0.65rem;
+      color: rgba(255,255,255,0.45);
+      letter-spacing: 0.04em;
+      transition: height 0.8s;
+    }
+    .col .erosion-ghost.has-loss {
+      height: 38px;
+    }
+    .col .erosion-ghost.catastrophic {
+      height: 70px;
+      background: repeating-linear-gradient(
+        135deg,
+        rgba(239,68,68,0.22) 0 4px,
+        rgba(239,68,68,0.08) 4px 8px
+      );
+      color: rgba(255,200,200,0.7);
+    }
+
+    /* The soil column itself */
+    .col .soil-column {
+      flex: 1;
+      display: flex; flex-direction: column;
+      min-height: 360px;
+      border-radius: 0 0 8px 8px;
+      overflow: hidden;
+      box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,0.03),
+        0 12px 30px -8px rgba(0,0,0,0.6);
+      position: relative;
+    }
+
+    .band {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.5rem 0.85rem;
+      color: rgba(255,255,255,0.92);
+      border-bottom: 1px solid rgba(0,0,0,0.35);
+      position: relative;
+      font-variant-numeric: tabular-nums;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.7);
+      transition: filter 0.3s;
+    }
+    .band:last-child { border-bottom: none; }
+    .band .band-depth {
+      font-size: 0.68rem;
+      opacity: 0.70;
+      letter-spacing: 0.03em;
+    }
+    .band .band-value {
+      font-family: 'Fraunces', serif;
+      font-size: 0.92rem;
+      font-weight: 600;
+    }
+    .band .band-value .unit {
+      font-family: 'Inter', sans-serif;
+      font-weight: 400;
+      font-size: 0.65rem;
+      opacity: 0.65;
+      margin-left: 0.2rem;
+    }
+
+    /* Bulk density stipple overlay (dense soil = dense dots) */
+    .band.bd-dense::after {
+      content: '';
+      position: absolute; inset: 0;
+      background-image: radial-gradient(circle at 25% 30%, rgba(0,0,0,0.25) 1px, transparent 1.5px),
+                        radial-gradient(circle at 70% 65%, rgba(0,0,0,0.22) 1px, transparent 1.5px),
+                        radial-gradient(circle at 45% 85%, rgba(0,0,0,0.18) 1px, transparent 1.5px);
+      background-size: 8px 8px, 11px 11px, 14px 14px;
+      pointer-events: none;
+    }
+
+    /* Water retention sheen — subtle vertical gradient */
+    .band.moist::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(180deg, rgba(34,211,238,0.00) 0%, rgba(34,211,238,0.08) 100%);
+      pointer-events: none;
+    }
+
+    /* LSI glow — ring around thriving bands */
+    .band.alive {
+      box-shadow: inset 0 0 18px rgba(163,230,53,0.15);
+    }
+    .band.thriving {
+      box-shadow: inset 0 0 30px rgba(163,230,53,0.25);
+    }
+
+    /* Microbe particle dots */
+    .band .microbes {
+      position: absolute; inset: 0;
+      pointer-events: none;
+      opacity: 0.55;
+    }
+    .band .microbes .dot {
+      position: absolute;
+      width: 2px; height: 2px;
+      background: #d3f5a2;
+      border-radius: 50%;
+      box-shadow: 0 0 3px rgba(163,230,53,0.9);
+    }
+
+    /* AMF root fringe — hairs extending into the right edge */
+    .col.oracle .soil-column::after {
+      content: '';
+      position: absolute;
+      right: 0; top: 0; bottom: 0; width: 36px;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 400'><g stroke='rgba(163,230,53,0.55)' stroke-width='1' fill='none' stroke-linecap='round'><path d='M0 20 Q10 18 22 24 Q26 28 30 22'/><path d='M0 40 Q12 45 24 38'/><path d='M0 70 Q8 66 18 72 Q24 76 32 72'/><path d='M0 100 Q14 106 26 98'/><path d='M0 125 Q10 120 22 128'/><path d='M0 155 Q12 150 28 156'/><path d='M0 180 Q10 184 22 176'/><path d='M0 210 Q14 216 24 208'/><path d='M0 240 Q10 236 22 242'/><path d='M0 270 Q12 276 26 268'/><path d='M0 300 Q10 296 22 302'/><path d='M0 330 Q12 336 26 328'/><circle cx='18' cy='24' r='1.8' fill='rgba(163,230,53,0.8)'/><circle cx='24' cy='72' r='1.8' fill='rgba(163,230,53,0.8)'/><circle cx='26' cy='156' r='1.8' fill='rgba(163,230,53,0.8)'/></g></svg>");
+      background-repeat: no-repeat;
+      background-size: 100% 100%;
+      pointer-events: none;
+    }
+
+    /* Event track — fire/drought icons */
+    .event-track {
+      position: absolute;
+      left: -8px; top: 40px; bottom: 40px;
+      width: 16px;
+      display: flex; flex-direction: column;
+      justify-content: space-around;
+      pointer-events: none;
+    }
+    .event-track .ev {
+      display: inline-flex;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.7);
+      border: 1px solid rgba(255,255,255,0.15);
+      align-items: center; justify-content: center;
+      font-size: 10px;
+    }
+
+    /* ─── Year scrubber + controls ─── */
+    .controls {
+      max-width: 1280px;
+      margin: 1.5rem auto 0;
+      padding: 1.25rem 1.5rem;
+      background: var(--surface);
+      border: 1px solid var(--border-soft);
+      border-radius: 14px;
+      display: flex; align-items: center; gap: 1.25rem;
+    }
+    .controls .play-btn {
+      background: var(--accent);
+      color: #0a0d12;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 10px;
+      font-size: 0.9rem; font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(163,230,53,0.25);
+    }
+    .controls .scrubber-wrap {
+      flex: 1;
+      display: flex; align-items: center; gap: 0.8rem;
+    }
+    .controls .year-label {
+      font-family: 'Fraunces', serif;
+      font-size: 1.15rem; font-weight: 600;
+      color: var(--accent);
+      min-width: 80px;
+    }
+    .controls input[type="range"] {
+      flex: 1;
+      accent-color: var(--accent);
+      height: 4px;
+    }
+    .controls .ticks {
+      display: flex; justify-content: space-between;
+      font-size: 0.68rem; color: var(--muted);
+      margin-top: 0.2rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ─── AI caption ─── */
+    .ai-caption {
+      max-width: 1280px;
+      margin: 1rem auto 0;
+      padding: 1rem 1.25rem;
+      background: linear-gradient(135deg, rgba(163,230,53,0.06), rgba(34,211,238,0.04));
+      border: 1px solid rgba(163,230,53,0.2);
+      border-radius: 12px;
+      display: flex; align-items: center; gap: 1rem;
+    }
+    .ai-caption .chip {
+      font-size: 0.65rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      padding: 0.25rem 0.7rem;
+      border-radius: 999px;
+      background: rgba(163,230,53,0.15);
+      color: var(--accent);
+      white-space: nowrap;
+    }
+    .ai-caption p {
+      font-size: 0.88rem;
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+    .ai-caption p strong { color: var(--text); font-weight: 600; }
+
+    /* ─── Summary numbers strip ─── */
+    .summary-strip {
+      max-width: 1280px;
+      margin: 1rem auto 0;
+      padding: 1rem 1.25rem;
+      background: var(--surface);
+      border: 1px solid var(--border-soft);
+      border-radius: 12px;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0.75rem;
+    }
+    .summary-strip .stat {
+      border-right: 1px solid var(--border-soft);
+      padding-right: 0.75rem;
+    }
+    .summary-strip .stat:last-child { border-right: none; }
+    .summary-strip .stat-label {
+      font-size: 0.65rem; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .summary-strip .stat-value {
+      font-family: 'Fraunces', serif;
+      font-size: 1.35rem; font-weight: 600;
+      margin-top: 0.2rem;
+    }
+    .summary-strip .stat-value.bad  { color: #f87171; }
+    .summary-strip .stat-value.good { color: #a3e635; }
+    .summary-strip .stat-sub {
+      font-size: 0.65rem;
+      color: var(--muted);
+      margin-top: 0.15rem;
+    }
+
+    /* Mockup note */
+    .mockup-note {
+      max-width: 1280px;
+      margin: 2rem auto 0;
+      padding: 1rem 1.25rem;
+      background: rgba(34,211,238,0.05);
+      border: 1px solid rgba(34,211,238,0.2);
+      border-radius: 10px;
+      color: var(--text-dim);
+      font-size: 0.82rem;
+      line-height: 1.5;
+    }
+    .mockup-note strong { color: var(--accent-cool); }
+
+    /* Legend */
+    .legend {
+      max-width: 1280px;
+      margin: 1rem auto 0;
+      padding: 0.8rem 1.25rem;
+      display: flex; gap: 1.25rem; align-items: center;
+      font-size: 0.72rem; color: var(--muted);
+      flex-wrap: wrap;
+    }
+    .legend .sw {
+      width: 14px; height: 14px;
+      border-radius: 3px;
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 0.4rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="mockup-header">
+    <span class="eyebrow">Design Mockup · Hero Scene</span>
+    <h1>The Soil, <span class="accent">Cut Open</span></h1>
+    <p>This is how all the simulation data — carbon, erosion, water, microbes, events — will come together into one unified scene. Three columns, one story.</p>
+  </div>
+
+  <!-- Combo bar -->
+  <div class="combo-bar">
+    <div class="combo">
+      <div class="combo-label">You chose</div>
+      <div class="combo-value"><span class="icon">🌾</span>Industrial Farming</div>
+    </div>
+    <div class="combo">
+      <div class="combo-label">Climate future</div>
+      <div class="combo-value">Middle Road · +2.7°C</div>
+    </div>
+    <div class="combo">
+      <div class="combo-label">Looking at</div>
+      <div class="combo-value">2075 · 50 years ahead</div>
+    </div>
+  </div>
+
+  <!-- The hero scene -->
+  <div class="hero-scene">
+    <h3 class="hero-title">Three moments of the same patch of ground</h3>
+    <p class="hero-sub">Before humans broke it · today · what happens if we keep going. Each coloured band is a real measurement depth. Darker = richer soil with more carbon. Paler = dying.</p>
+
+    <div class="stage">
+      <!-- Depth axis -->
+      <div class="depth-axis">
+        <div class="depth-tick">0 cm</div>
+        <div class="depth-tick">5 cm</div>
+        <div class="depth-tick">15 cm</div>
+        <div class="depth-tick">30 cm</div>
+        <div class="depth-tick">60 cm</div>
+        <div class="depth-tick">100 cm</div>
+        <div class="depth-tick">200 cm</div>
+      </div>
+
+      <!-- Column 1: Archive 1950 -->
+      <div class="col archive">
+        <div class="col-year">Archive</div>
+        <div class="col-title">1950 · before</div>
+        <!-- Thick forest canopy -->
+        <div class="canopy">
+          <svg viewBox="0 0 200 180" preserveAspectRatio="none">
+            <!-- oak 1 -->
+            <ellipse cx="50" cy="80" rx="32" ry="40" fill="#1a3a1a" opacity="0.9"/>
+            <ellipse cx="45" cy="70" rx="25" ry="30" fill="#2d5a2d" opacity="0.8"/>
+            <rect x="47" y="120" width="6" height="40" fill="#1a1108"/>
+            <!-- oak 2 -->
+            <ellipse cx="120" cy="90" rx="40" ry="48" fill="#1a3a1a" opacity="0.9"/>
+            <ellipse cx="115" cy="78" rx="30" ry="35" fill="#2d5a2d" opacity="0.8"/>
+            <rect x="117" y="130" width="7" height="30" fill="#1a1108"/>
+            <!-- oak 3 -->
+            <ellipse cx="175" cy="85" rx="28" ry="38" fill="#1a3a1a" opacity="0.9"/>
+            <rect x="173" y="120" width="5" height="40" fill="#1a1108"/>
+            <!-- ground mark -->
+            <line x1="0" y1="175" x2="200" y2="175" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+          </svg>
+        </div>
+        <!-- No erosion ghost -->
+        <div class="erosion-ghost"></div>
+
+        <div class="soil-column">
+          <div class="band alive thriving" style="background: rgb(37,23,11); flex-basis:14.2%; flex-grow:0;">
+            <span class="band-depth">0–5 cm</span>
+            <span class="band-value">14.9 <span class="unit">g/kg</span></span>
+            <span class="microbes">
+              <span class="dot" style="top:20%;left:15%;"></span>
+              <span class="dot" style="top:55%;left:32%;"></span>
+              <span class="dot" style="top:40%;left:55%;"></span>
+              <span class="dot" style="top:75%;left:70%;"></span>
+              <span class="dot" style="top:25%;left:82%;"></span>
+              <span class="dot" style="top:65%;left:12%;"></span>
+            </span>
+          </div>
+          <div class="band alive thriving moist" style="background: rgb(43,28,14); flex-basis:14.2%; flex-grow:0;">
+            <span class="band-depth">5–15 cm</span>
+            <span class="band-value">13.7 <span class="unit">g/kg</span></span>
+            <span class="microbes">
+              <span class="dot" style="top:30%;left:22%;"></span>
+              <span class="dot" style="top:60%;left:50%;"></span>
+              <span class="dot" style="top:45%;left:75%;"></span>
+            </span>
+          </div>
+          <div class="band alive moist" style="background: rgb(58,36,19); flex-basis:14.2%; flex-grow:0;">
+            <span class="band-depth">15–30 cm</span>
+            <span class="band-value">11.8 <span class="unit">g/kg</span></span>
+          </div>
+          <div class="band moist" style="background: rgb(75,47,25); flex-basis:14.2%; flex-grow:0;">
+            <span class="band-depth">30–60 cm</span>
+            <span class="band-value">10.1 <span class="unit">g/kg</span></span>
+          </div>
+          <div class="band moist" style="background: rgb(90,60,35); flex-basis:14.2%; flex-grow:0;">
+            <span class="band-depth">60–100 cm</span>
+            <span class="band-value">9.1 <span class="unit">g/kg</span></span>
+          </div>
+          <div class="band moist" style="background: rgb(105,72,42); flex-basis:28.8%; flex-grow:0;">
+            <span class="band-depth">100–200 cm</span>
+            <span class="band-value">8.5 <span class="unit">g/kg</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Column 2: Witness 2025 (selected — the current baseline) -->
+      <div class="col witness">
+        <div class="col-year">Witness</div>
+        <div class="col-title">2025 · today</div>
+        <!-- Sparse vegetation -->
+        <div class="canopy">
+          <svg viewBox="0 0 200 180" preserveAspectRatio="none">
+            <!-- sparse low shrubs -->
+            <ellipse cx="30" cy="155" rx="20" ry="12" fill="#2d4a2d" opacity="0.7"/>
+            <ellipse cx="80" cy="160" rx="16" ry="8" fill="#2d4a2d" opacity="0.6"/>
+            <ellipse cx="135" cy="155" rx="22" ry="12" fill="#2d4a2d" opacity="0.7"/>
+            <ellipse cx="180" cy="160" rx="14" ry="8" fill="#2d4a2d" opacity="0.6"/>
+            <!-- bare patches -->
+            <line x1="0" y1="175" x2="200" y2="175" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+          </svg>
+        </div>
+        <div class="erosion-ghost has-loss">
+          <span>1 cm lost since 1950 →</span>
+        </div>
+
+        <div class="soil-column">
+          <div class="band alive" style="background: rgb(88,58,33); flex-basis:14.2%; flex-grow:0;">
+            <span class="band-depth">0–5 cm</span>
+            <span class="band-value">8.3 <span class="unit">g/kg</span></span>
+            <span class="microbes">
+              <span class="dot" style="top:30%;left:22%;"></span>
+              <span class="dot" style="top:60%;left:55%;"></span>
+              <span class="dot" style="top:45%;left:80%;"></span>
+            </span>
+          </div>
+          <div class="band alive" style="background: rgb(88,58,33); flex-basis:14.2%; flex-grow:0;">
+            <span class="band-depth">5–15 cm</span>
+            <span class="band-value">8.3 <span class="unit">g/kg</span></span>
+          </div>
+          <div class="band bd-dense" style="background: rgb(89,59,34); flex-basis:14.2%; flex-grow:0;">
+            <span class="band-depth">15–30 cm</span>
+            <span class="band-value">8.2 <span class="unit">g/kg</span></span>
+          </div>
+          <div class="band bd-dense" style="background: rgb(90,60,35); flex-basis:14.2%; flex-grow:0;">
+            <span class="band-depth">30–60 cm</span>
+            <span class="band-value">8.1 <span class="unit">g/kg</span></span>
+          </div>
+          <div class="band bd-dense" style="background: rgb(91,61,36); flex-basis:14.2%; flex-grow:0;">
+            <span class="band-depth">60–100 cm</span>
+            <span class="band-value">8.1 <span class="unit">g/kg</span></span>
+          </div>
+          <div class="band bd-dense" style="background: rgb(92,62,37); flex-basis:28.8%; flex-grow:0;">
+            <span class="band-depth">100–200 cm</span>
+            <span class="band-value">8.1 <span class="unit">g/kg</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Column 3: Oracle 2075 -->
+      <div class="col oracle selected">
+        <div class="col-year">Oracle</div>
+        <div class="col-title">2075 · your future</div>
+        <!-- Barren canopy -->
+        <div class="canopy">
+          <svg viewBox="0 0 200 180" preserveAspectRatio="none">
+            <!-- dead stumps, bare field -->
+            <rect x="40" y="165" width="3" height="12" fill="#2a1a10"/>
+            <rect x="110" y="168" width="2" height="10" fill="#2a1a10"/>
+            <rect x="165" y="166" width="3" height="12" fill="#2a1a10"/>
+            <!-- hazy red sky hint -->
+            <rect x="0" y="0" width="200" height="60" fill="rgba(239,68,68,0.05)"/>
+            <line x1="0" y1="175" x2="200" y2="175" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+          </svg>
+        </div>
+        <div class="erosion-ghost catastrophic">
+          <span>11 cm topsoil lost →</span>
+        </div>
+
+        <div class="soil-column">
+          <div class="band bd-dense" style="background: rgb(150,120,85); flex-basis:14.2%; flex-grow:0;">
+            <span class="band-depth">0–5 cm</span>
+            <span class="band-value">3.6 <span class="unit">g/kg</span></span>
+          </div>
+          <div class="band bd-dense" style="background: rgb(128,95,60); flex-basis:14.2%; flex-grow:0;">
+            <span class="band-depth">5–15 cm</span>
+            <span class="band-value">5.1 <span class="unit">g/kg</span></span>
+          </div>
+          <div class="band bd-dense" style="background: rgb(120,85,52); flex-basis:14.2%; flex-grow:0;">
+            <span class="band-depth">15–30 cm</span>
+            <span class="band-value">5.7 <span class="unit">g/kg</span></span>
+          </div>
+          <div class="band bd-dense" style="background: rgb(108,72,42); flex-basis:14.2%; flex-grow:0;">
+            <span class="band-depth">30–60 cm</span>
+            <span class="band-value">6.6 <span class="unit">g/kg</span></span>
+          </div>
+          <div class="band" style="background: rgb(98,64,36); flex-basis:14.2%; flex-grow:0;">
+            <span class="band-depth">60–100 cm</span>
+            <span class="band-value">7.3 <span class="unit">g/kg</span></span>
+          </div>
+          <div class="band" style="background: rgb(92,60,33); flex-basis:28.8%; flex-grow:0;">
+            <span class="band-depth">100–200 cm</span>
+            <span class="band-value">7.8 <span class="unit">g/kg</span></span>
+          </div>
+          <!-- Event track beside the column -->
+          <div class="event-track">
+            <span class="ev" title="Fire 2034">🔥</span>
+            <span class="ev" title="Drought 2048">💧</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Controls under the stage -->
+    <div class="controls">
+      <button class="play-btn">▶ Play 50 years in 8 seconds</button>
+      <div class="scrubber-wrap">
+        <span class="year-label">2075</span>
+        <div style="flex:1;">
+          <input type="range" min="0" max="50" value="50">
+          <div class="ticks">
+            <span>2025</span><span>2035</span><span>2045</span><span>2055</span><span>2065</span><span>2075</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- What the AI did -->
+    <div class="ai-caption">
+      <span class="chip">WHAT THE AI DID</span>
+      <p>Took today's real soil data for Barcelona (6 depth layers, measured by satellite). Ran <strong>50 years</strong> of physics: how carbon moves through soil, how rain and heat change it, how tillage breaks it down. Added your choice: <strong>Industrial Farming with no cover and chemical fertiliser</strong>. Projected the result to 2075.</p>
+    </div>
+
+    <!-- Summary numbers -->
+    <div class="summary-strip">
+      <div class="stat">
+        <div class="stat-label">Carbon in the soil</div>
+        <div class="stat-value bad">3.6 g/kg</div>
+        <div class="stat-sub">was 8.3 · -57%</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Topsoil lost</div>
+        <div class="stat-value bad">11 cm</div>
+        <div class="stat-sub">blown & washed away</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Water held</div>
+        <div class="stat-value bad">18 %</div>
+        <div class="stat-sub">was 28 · sponge gone</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Living Soil Score</div>
+        <div class="stat-value bad">16 / 100</div>
+        <div class="stat-sub">barely alive</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Events</div>
+        <div class="stat-value" style="color:#f87171;">🔥 1 · 💧 1</div>
+        <div class="stat-sub">fire + drought</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="legend">
+    <div><span class="sw" style="background:rgb(37,23,11);"></span>High carbon (14+ g/kg)</div>
+    <div><span class="sw" style="background:rgb(90,60,35);"></span>Medium (8)</div>
+    <div><span class="sw" style="background:rgb(150,120,85);"></span>Low (3)</div>
+    <div><span class="sw" style="background:repeating-linear-gradient(135deg,rgba(239,68,68,0.22) 0 4px,rgba(239,68,68,0.08) 4px 8px);border:1px dashed rgba(255,255,255,0.2);"></span>Lost topsoil (ghost)</div>
+    <div>🔥 Fire event</div>
+    <div>💧 Drought</div>
+    <div><span class="sw" style="background:rgba(163,230,53,0.35);border-radius:50%;box-shadow:inset 0 0 6px rgba(163,230,53,0.8);"></span>Living soil glow</div>
+  </div>
+
+  <div class="mockup-note">
+    <strong>⚠ This is a static mockup</strong> — numbers are hard-coded for "Industrial Farming × Middle Road" to show the visual design. The live version will drive all of this from the real simulation (which is already producing this data). Things that will be animated in the live version: the Play button fills the Oracle column over 8 seconds using real per-year data, the scrubber drags through time, hover highlights matching bands in all three columns, microbe dots drift, and clicking a band opens a detail panel.
+  </div>
+</body>
+</html>

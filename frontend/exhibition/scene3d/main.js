@@ -131,14 +131,24 @@ export class Scene3d {
     this.raycaster.setFromCamera(this.pointer, this.camera);
 
     if (this.state === 'idle') {
-      // Which column did they tap? (attract scene handles picking)
-      const picked = this.attract.pickColumnFromRay(this.raycaster)
-        ?? 'regenerative'; // default if they missed the columns
-      this.enterFocused(picked);
+      // Tap MUST land on a column to advance. Falling through to a
+      // default made every accidental tap pick "regenerative" — visitors
+      // experienced this as random / sketchy navigation.
+      const picked = this.attract.pickColumnFromRay(this.raycaster);
+      if (picked) this.enterFocused(picked);
     } else if (this.state === 'focused') {
-      // Tap on the focused column → dive-in. Any tap counts, no strict
-      // intersection test needed because there's only one object on screen.
-      this.enterDive();
+      // Tap ON the focused column → dive in.
+      // Tap on empty space → back to attract loop. Gives visitors a
+      // natural "tap subject = forward, tap empty = back" gesture
+      // without adding a back button.
+      const hits = this.focused
+        ? this.raycaster.intersectObject(this.focused.mesh, false)
+        : [];
+      if (hits.length > 0) {
+        this.enterDive();
+      } else {
+        this.setMode('idle');
+      }
     } else if (this.state === 'dive') {
       // Tap anywhere → back out to focused.
       this.enterFocused(this.currentPhilosophy);

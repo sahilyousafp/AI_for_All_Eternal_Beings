@@ -42,10 +42,10 @@ try:
     import ee
     ee.Initialize(project="abm-sim-485823")
     GEE_AVAILABLE = True
-    print("✅ Earth Engine initialised.")
+    print("Earth Engine initialised.")
 except Exception as _gee_err:
-    print(f"⚠️  Earth Engine unavailable: {_gee_err}")
-    print("   Local GeoTIFF files will be served directly.")
+    print(f"Earth Engine unavailable: {_gee_err}")
+    print("Local GeoTIFF files will be served directly.")
 
 
 def _now_iso():

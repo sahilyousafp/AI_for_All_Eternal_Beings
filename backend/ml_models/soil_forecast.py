@@ -180,12 +180,14 @@ def forecast_soil_property(
             "wilting_point":   0.12,
         }
 
-    # Pull scalar values
-    oc_3layer = ic.get("organic_carbon", np.array([8.5, 5.2, 2.1]))
-    if hasattr(oc_3layer, "__len__"):
-        oc_surface = float(oc_3layer[0]) if len(oc_3layer) > 0 else 8.5
+    # Pull scalar values. `organic_carbon` is an N-layer array (6 after the
+    # SoilGrids refactor); we only need the surface value for the 1-cell
+    # RothC runs below.
+    oc_layered = ic.get("organic_carbon", np.array([8.5, 5.2, 2.1]))
+    if hasattr(oc_layered, "__len__"):
+        oc_surface = float(oc_layered[0]) if len(oc_layered) > 0 else 8.5
     else:
-        oc_surface = float(oc_3layer)
+        oc_surface = float(oc_layered)
 
     clay    = float(ic.get("clay_pct", 25.0))
     bd_init = float(ic.get("bulk_density", 1.35))

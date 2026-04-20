@@ -1,11 +1,19 @@
 """
 Main simulation engine: couples all soil model modules.
 
-Runs on a 20×20 spatial grid × 3 depth layers × N ensemble members.
+Runs on a 20×20 spatial grid × N depth layers × N ensemble members.
 All operations vectorized across n_ensemble × n_cells simultaneously.
-Only loop is over years (outer) and depth layers (inner, 3 iterations).
+Only loop is over years (outer) and depth layers (inner, N_LAYERS iterations).
 
-Performance target: <3s for 100yr simulation (10 ensemble × 400 cells).
+Depth layers map to SoilGrids 2.0 native depth bands:
+    0: 0-5 cm      (leaf litter + top few cm)
+    1: 5-15 cm     (A horizon)
+    2: 15-30 cm    (lower A)
+    3: 30-60 cm    (upper B horizon)
+    4: 60-100 cm   (lower B horizon)
+    5: 100-200 cm  (C horizon / parent material)
+
+Performance target: <6s for 100yr simulation at N=6 (10 ensemble × 400 cells).
 
 Output schema matches /api/exhibition/simulate response contract.
 """
@@ -21,6 +29,26 @@ from backend.soil_model.erosion import compute_erosion
 from backend.soil_model.disturbances import check_disturbances
 from backend.soil_model.philosophies import get_philosophy
 from backend.soil_model.microbial_indicators import compute_all_indicators
+
+# ── Depth-layer configuration ──────────────────────────────────────────────
+# Set to 6 to match SoilGrids 2.0 native bands. The engine is now N-generic
+# so it could be changed to any positive integer — but the loader in
+# backend/soil_init/extract_conditions.py currently only emits 6 bands.
+N_LAYERS = 6
+
+# Depth-decaying moisture profile: the ratio of this layer's plant-available
+# water to the surface value. Based on observed vertical profiles in
+# Mediterranean soils (Querejeta et al. 2007; Barbeta & Peñuelas 2017).
+# Surface stays near the driving moisture_ratio; bottom layer stays near
+# ~40% of surface (deep soil holds water longer but has less active turnover).
+DEPTH_MOISTURE_FACTOR = np.array([1.00, 0.92, 0.82, 0.70, 0.55, 0.40])
+
+# Root-C input depth profile for layers 1..N-1. Sum = 1.0.
+# Mediterranean vegetation concentrates ~60 % of root biomass in the top
+# 15 cm (layer 1) with sharp exponential decline below. Pattern from
+# Jackson et al. (1996, Oecologia) global root-depth meta-analysis and
+# Canadell et al. (1996) for Mediterranean biomes specifically.
+_ROOT_DEPTH_PROFILE_6 = np.array([0.60, 0.22, 0.10, 0.05, 0.03])  # layers 1-5
 
 
 def _init_veg_state(philosophy: dict, ic: dict, n_cells: int) -> dict:
@@ -63,16 +91,16 @@ def _init_bio_state(n_cells: int) -> dict:
     }
 
 
-def _pools_to_flat(pools_3layer: dict, n_cells: int) -> list[dict]:
-    """Convert (n_cells, 3) pool arrays into list of 3 layer-dicts for rothc_step."""
+def _pools_to_flat(pools_nlayer: dict, n_cells: int, n_layers: int = N_LAYERS) -> list[dict]:
+    """Convert (n_cells, n_layers) pool arrays into list of per-layer dicts."""
     layers = []
-    for l in range(3):
-        layers.append({k: v[:, l] for k, v in pools_3layer.items() if k != "_leach_DPM"})
+    for l in range(n_layers):
+        layers.append({k: v[:, l] for k, v in pools_nlayer.items() if k != "_leach_DPM"})
     return layers
 
 
 def _flat_to_pools(layers: list[dict]) -> dict:
-    """Reconstruct (n_cells, 3) pool dict from list of layer dicts."""
+    """Reconstruct (n_cells, n_layers) pool dict from list of layer dicts."""
     pools = {}
     for key in ("DPM", "RPM", "BIO", "HUM", "IOM"):
         pools[key] = np.stack([l[key] for l in layers], axis=1)
@@ -121,7 +149,7 @@ def simulate(
             return arr.reshape(n_cells, arr.shape[-1])
         return arr.reshape(n_cells)
 
-    oc_3layer    = _flat(initial_conditions["organic_carbon"])         # (n_cells, 3) g/kg
+    oc_layered   = _flat(initial_conditions["organic_carbon"])         # (n_cells, N_LAYERS) g/kg
     clay_pct     = _flat(initial_conditions["clay_pct"])               # (n_cells,) %
     sand_pct     = _flat(initial_conditions["sand_pct"])
     silt_pct     = _flat(initial_conditions["silt_pct"])
@@ -135,8 +163,15 @@ def simulate(
     lat_grid     = initial_conditions["lat_grid"]
     lon_grid     = initial_conditions["lon_grid"]
 
-    baseline_oc      = oc_3layer[:, 0].copy()  # surface layer at t=0 for veg feedback
-    soc_init_surface = oc_3layer[:, 0].copy()  # used for water_retention / bulk_density deltas
+    # Validate that the initial conditions match N_LAYERS.
+    if oc_layered.ndim != 2 or oc_layered.shape[1] != N_LAYERS:
+        raise ValueError(
+            f"Engine is configured for N_LAYERS={N_LAYERS} but "
+            f"initial_conditions['organic_carbon'] has shape {oc_layered.shape}."
+        )
+
+    baseline_oc      = oc_layered[:, 0].copy()  # surface layer at t=0 for veg feedback
+    soc_init_surface = oc_layered[:, 0].copy()  # used for water_retention / bulk_density deltas
 
     # ── Biochar amendment — C goes to IOM (stable, k≈0) ──────────────────
     # Biochar is pyrolytic carbon: >80% refractory, stable for 100-1000 years.
@@ -154,7 +189,7 @@ def simulate(
     moisture_ens = []
 
     for e in range(n_ensemble):
-        pools_e = initialize_pools(oc_3layer, clay_pct, {}, np.full(n_cells, 0.3))
+        pools_e = initialize_pools(oc_layered, clay_pct, {}, np.full(n_cells, 0.3))
         # Biochar C added directly to IOM (surface layer) — stable, never decomposes
         if biochar_iom_val > 0:
             pools_e["IOM"][:, 0] += biochar_iom_val
@@ -173,9 +208,21 @@ def simulate(
         "mbc", "fb_ratio", "qco2", "amf_pct", "living_soil_index",
     ]
     timeseries = {f"{k}_{s}": [] for k in ts_keys for s in ("mean", "p10", "p90")}
+    # Per-layer SOC timeseries for the cross-section visualiser. Shape after
+    # simulation: (years+1, N_LAYERS) — one ensemble-mean value per layer per year.
+    timeseries["soc_layers_mean"] = []   # list of length-N_LAYERS lists
     spatial_timeseries = {}
     events_log = []
     _initial_mean_soc = None   # set at yr_idx=0 for sequestration counter
+    # ML metadata captured once when the ML path fires for the first time.
+    _ml_metadata = {
+        "source": "formula_based",
+        "feature_importance": {},
+        "model_r2": {},
+    }
+    # Final-year uncertainty (std across the RF ensemble of trees), captured
+    # on the last yr_idx so the frontend can draw confidence bands.
+    _ml_final_uncertainty = None
 
     start_year = 2025
 
@@ -199,6 +246,8 @@ def simulate(
         ens_qco2  = np.zeros((n_ensemble, n_cells))   # metabolic quotient
         ens_amf   = np.zeros((n_ensemble, n_cells))   # AMF colonisation %
         ens_lsi   = np.zeros((n_ensemble, n_cells))   # Living Soil Index 0–100
+        # Per-layer SOC snapshot for this year: shape (ensemble, cells, N_LAYERS)
+        ens_soc_layered = np.zeros((n_ensemble, n_cells, N_LAYERS))
 
         for e in range(n_ensemble):
             # 1. Climate with per-ensemble stochastic seed
@@ -220,6 +269,13 @@ def simulate(
                        pools_ens[e]["IOM"])
             current_soc_surface = soc_mat[:, 0] if soc_mat.ndim > 1 else soc_mat
 
+            # Previous-year moisture ratio (used as vegetation's drought signal).
+            # Water balance runs AFTER vegetation this year, so vegetation uses
+            # the state at the start of this year's step — one-year lag is
+            # physiologically correct (trees respond to stored water from last
+            # growing season).
+            veg_moist_ratio = moisture_ens[e] / np.maximum(fc, 0.01)
+
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 veg_new = vegetation_step(
@@ -229,6 +285,7 @@ def simulate(
                     soil_awc=awc_init,
                     current_oc=current_soc_surface,
                     baseline_oc=baseline_oc,
+                    moisture_ratio=veg_moist_ratio,
                 )
 
             # 4. Eucalyptus water table draw-down (reduce neighbour moisture)
@@ -296,29 +353,43 @@ def simulate(
             # DPM:RPM ratio from vegetation
             dpm_rpm = veg_new.get("dpm_rpm_ratio", 1.44)
 
-            layer_pools = _pools_to_flat(pools_ens[e], n_cells)
+            layer_pools = _pools_to_flat(pools_ens[e], n_cells, N_LAYERS)
             layer_co2   = np.zeros(n_cells)
             leach_from_above = np.zeros(n_cells)
 
-            # Root C input distributed to deeper layers by exponential depth profile
-            # (roots penetrate to root_depth; fraction in each layer follows exponential decay)
+            # Root C input distributed to deeper layers by root-depth profile.
+            # deep_root_frac is the fraction of surface C input re-routed to
+            # layers 1..N-1 according to _ROOT_DEPTH_PROFILE_6. A larger
+            # fraction (~45 %) reflects that Mediterranean vegetation allocates
+            # substantial C below-ground via fine roots and exudates that
+            # turn over annually (Jackson 1996; Rasse 2005). Without this,
+            # the shallow subsoil cannot track management decisions and every
+            # philosophy produces the same layer-1 outcome.
             root_depth  = params.get("root_depth", 2.0)
-            # Fraction of TOTAL C input attributed to roots (already in carbon_input_surface),
-            # re-distributed to layers 1 and 2 proportional to root fraction below 30cm.
-            # Deep root contribution: 20% of surface C × (1 - exp(-root_depth_m/1.5))
-            deep_root_frac = 0.20 * (1.0 - np.exp(-root_depth / 1.5))
+            deep_root_frac = 0.45 * (1.0 - np.exp(-root_depth / 1.5))
             root_deep_total = carbon_input_surface * deep_root_frac
-            # layer 1 (30-100cm): 60% of deep root fraction; layer 2: 40%
-            root_to_layer = [root_deep_total * 0.60, root_deep_total * 0.40]
+            # Per-layer root contribution for layers 1..N-1. For N=6 this uses the
+            # Canadell-style profile defined at the top of the module. For any other
+            # N we fall back to an equal split.
+            n_deep_layers = N_LAYERS - 1
+            if n_deep_layers == len(_ROOT_DEPTH_PROFILE_6):
+                root_profile = _ROOT_DEPTH_PROFILE_6
+            else:
+                root_profile = np.full(n_deep_layers, 1.0 / max(n_deep_layers, 1))
+            root_to_layer = [root_deep_total * float(f) for f in root_profile]
 
-            for l in range(3):
-                # Carbon input: surface gets veg litter, deeper gets root litter + DOC leaching
+            for l in range(N_LAYERS):
+                # Carbon input: surface gets the full vegetation-derived input.
+                # Deeper layers receive root litter for their depth bin + any DPM
+                # leached from the layer above.
                 if l == 0:
                     c_input = carbon_input_surface
                 else:
                     c_input = leach_from_above + root_to_layer[l - 1]
 
-                layer_moisture = moisture_ratio * (1.0 - l * 0.15)  # moisture decreases with depth
+                # Depth-decaying moisture: deeper layers are drier (wet in wet
+                # years, buffered in dry years). Profile from Querejeta 2007.
+                layer_moisture = moisture_ratio * float(DEPTH_MOISTURE_FACTOR[l])
 
                 updated_layer, co2_l = rothc_step(
                     pools=layer_pools[l],
@@ -329,6 +400,7 @@ def simulate(
                     carbon_input=c_input,
                     cumulative_warming=cumul_warming,
                     depth_layer=l,
+                    n_layers=N_LAYERS,
                     dpm_rpm_ratio=dpm_rpm,
                 )
                 leach_from_above = updated_layer.pop("_leach_DPM", np.zeros(n_cells))
@@ -416,10 +488,11 @@ def simulate(
             )
 
             # 9. Collect outputs
-            soc_all = total_soc(pools_ens[e])  # (n_cells, 3)
-            # Track surface SOC (0-30cm layer 0) for timeseries — most responsive to management.
-            # Deep layers contribute to spatial output but are excluded from the primary % metric.
-            ens_soc[e]   = soc_all[:, 0]   # surface layer only (g/kg, 0-30cm)
+            soc_all = total_soc(pools_ens[e])  # (n_cells, N_LAYERS)
+            # Track surface SOC for the scalar timeseries (most responsive to management).
+            # Full per-layer SOC is captured alongside for the cross-section visualiser.
+            ens_soc[e]          = soc_all[:, 0]
+            ens_soc_layered[e]  = soc_all
             ens_erode[e] = erosion_flat
             ens_bio[e]   = bio_new["bii"]       # internal — aggregate_stability for erosion
             ens_can[e]   = veg_new["canopy_cover"]  # internal
@@ -456,12 +529,32 @@ def simulate(
                 canopy_cover=veg_new["canopy_cover"],
                 mycorrhizal_state=bio_new["mycorrhizal"],
                 philosophy_params=sim_params,
+                sand_pct=sand_pct,
+                precip_mm=float(climate["precip"]),
+                use_ml=True,
             )
             ens_mbc[e]  = mi["mbc_g_kg"]
             ens_fb[e]   = mi["fb_ratio"]
             ens_qco2[e] = mi["qco2"]
             ens_amf[e]  = mi["amf_pct"]
             ens_lsi[e]  = mi["living_soil_index"]
+
+            # Capture ML metadata on the first ensemble member of the first year
+            # (constants for the whole simulation). Final-year uncertainty is
+            # captured on the last year for the frontend confidence display.
+            if yr_idx == 0 and e == 0 and mi.get("source") == "ml_random_forest":
+                _ml_metadata = {
+                    "source": "ml_random_forest",
+                    "feature_importance": mi.get("feature_importance", {}),
+                    "model_r2":           mi.get("model_r2", {}),
+                }
+            if yr_idx == years and e == 0 and "mbc_std" in mi:
+                _ml_final_uncertainty = {
+                    "mbc_std_mean":  float(np.mean(mi["mbc_std"])),
+                    "fb_std_mean":   float(np.mean(mi["fb_std"])),
+                    "qco2_std_mean": float(np.mean(mi["qco2_std"])),
+                    "amf_std_mean":  float(np.mean(mi["amf_std"])),
+                }
 
             # Update states
             veg_ens[e]      = veg_new
@@ -503,6 +596,12 @@ def simulate(
             timeseries[f"{k}_p10"].append(round(lo, 4))
             timeseries[f"{k}_p90"].append(round(hi, 4))
 
+        # Per-layer SOC: ensemble × cells mean per depth layer (length-N_LAYERS list)
+        soc_layers_mean = np.mean(ens_soc_layered, axis=(0, 1))  # shape (N_LAYERS,)
+        timeseries["soc_layers_mean"].append(
+            [round(float(v), 4) for v in soc_layers_mean]
+        )
+
         # ── Spatial snapshots (every 10 years + final) ────────────────────
         if yr_idx % 10 == 0 or yr_idx == years:
             snap_key = str(calendar_year)
@@ -540,11 +639,84 @@ def simulate(
     # ── Year list ─────────────────────────────────────────────────────────
     year_list = list(range(start_year, start_year + years + 1))
 
+    # ── Initial profile for the cross-section visualiser ────────────────
+    # Ensemble-mean initial conditions per depth band, extracted once from
+    # the raw SoilGrids stacks in initial_conditions. The frontend uses this
+    # to render the "Today (2025)" column — real measured data, no modelling.
+    def _mean_profile(key: str) -> list:
+        arr = initial_conditions.get(key)
+        if arr is None or arr.ndim != 3:
+            return []
+        return [round(float(np.mean(arr[:, :, l])), 4) for l in range(arr.shape[2])]
+
+    initial_profile = {
+        "depth_cm_top":    [0, 5, 15, 30, 60, 100],
+        "depth_cm_bottom": [5, 15, 30, 60, 100, 200],
+        "organic_carbon_g_kg": _mean_profile("organic_carbon_6layer"),
+        "clay_pct":            _mean_profile("clay_pct_6layer"),
+        "sand_pct":            _mean_profile("sand_pct_6layer"),
+        "silt_pct":            _mean_profile("silt_pct_6layer"),
+        "bulk_density_t_m3":   _mean_profile("bulk_density_6layer"),
+        "soil_ph":             _mean_profile("soil_ph_6layer"),
+    }
+
+    # ── 1950 pre-industrial baseline (hand-calibrated) ──────────────────
+    # Mediterranean soil pre-industrial agriculture (Lugato et al. 2014 JRC
+    # baseline; Gao et al. 2018 historical reconstruction): surface SOC was
+    # ~1.8 × current values due to continuous perennial vegetation and long
+    # undisturbed HUM accumulation. Depth gradient steeper because deeper
+    # layers receive carbon from deeper, older root systems. We scale the
+    # Witness profile by a depth-dependent historical multiplier.
+    witness_oc = initial_profile["organic_carbon_g_kg"]
+    if witness_oc:
+        # Multipliers: surface +80 %, shallow-sub +60 %, mid +40 %, deep +15 %
+        # Then damped so we don't stack on top of depth-poor current profiles.
+        historical_mult = [1.80, 1.65, 1.45, 1.25, 1.12, 1.05]
+        archive_oc = [round(float(witness_oc[i]) * historical_mult[i], 4)
+                      for i in range(len(witness_oc))]
+    else:
+        archive_oc = []
+    archive_profile = {
+        "year": 1950,
+        "depth_cm_top":    initial_profile["depth_cm_top"],
+        "depth_cm_bottom": initial_profile["depth_cm_bottom"],
+        "organic_carbon_g_kg": archive_oc,
+        "source": "hand-calibrated from Lugato et al. 2014 + "
+                  "depth-attenuated multiplier of the 2025 Witness profile",
+    }
+
+    # ── Cumulative erosion → mm of topsoil lost ─────────────────────────
+    # t C/ha/yr is the SOC loss rate (via soc_erosion_loss); total soil loss
+    # (t/ha/yr) is tracked as "erosion_mean" in the timeseries. Convert the
+    # cumulative sum to millimetres of soil column lost using BD and an
+    # assumed 1 ha x 1 mm = 10 t mass (for BD 1.0; scale by real BD).
+    erosion_series = timeseries.get("erosion_mean", [])
+    bd_mean = float(np.mean(bulk_density))  # t/m³
+    total_erosion_t_ha = float(np.sum(erosion_series))   # t/ha over N yr
+    # 1 mm depth over 1 ha = 10 m³ → 10 × BD tonnes. So mm = t/ha / (10 × BD).
+    cumulative_topsoil_mm_lost = round(total_erosion_t_ha / max(10.0 * bd_mean, 1e-6), 2)
+    erosion_summary = {
+        "cumulative_t_ha": round(total_erosion_t_ha, 2),
+        "topsoil_mm_lost": cumulative_topsoil_mm_lost,
+        "mean_bd_t_m3":    round(bd_mean, 3),
+    }
+
+    # ── ML block — exposed to the frontend for the AI confidence display ──
+    ml_block = {
+        **_ml_metadata,
+        "final_uncertainty": _ml_final_uncertainty,
+    }
+
     return {
         "years":              year_list,
         "grid_shape":         [rows, cols],
         "ensemble_size":      n_ensemble,
+        "n_layers":           N_LAYERS,
         "timeseries":         timeseries,
+        "initial_profile":    initial_profile,
+        "archive_profile":    archive_profile,
+        "erosion_summary":    erosion_summary,
+        "ml":                 ml_block,
         "spatial_final":      spatial_final,
         "spatial_timeseries": spatial_timeseries,
         "events":             events_log,

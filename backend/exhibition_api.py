@@ -25,7 +25,7 @@ router = APIRouter(prefix="/api/exhibition", tags=["exhibition"])
 class SimulateRequest(BaseModel):
     philosophy:       str = Field(..., description="Philosophy key from /philosophies")
     climate_scenario: str = Field("ssp245", description="SSP scenario ID")
-    years:            int = Field(default=50, ge=10, le=100, description="Simulation years (10–100)")
+    years:            int = Field(default=50, ge=1, le=100, description="Simulation years (1–100)")
     n_ensemble:       int = Field(default=10, ge=1, le=20, description="Ensemble members")
     lat:              float = Field(default=41.40, ge=40.0, le=43.0)
     lon:              float = Field(default=2.15,  ge=0.0,  le=4.0)

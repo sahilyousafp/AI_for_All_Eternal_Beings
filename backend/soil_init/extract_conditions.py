@@ -180,52 +180,63 @@ def extract_initial_conditions(
         result = _load_raster_window_np(path, lat_min, lat_max, lon_min, lon_max, target_shape)
         return result
 
-    # ── Organic carbon (6 depth bands → 3 simulation layers) ─────────────
-    oc_bands = {}
-    for band in ("b0", "b10", "b30", "b60", "b100", "b200"):
-        arr = load("Organic_Carbon", band)
-        if arr is not None:
-            # SoilGrids scale factor: raw units are dg/kg (×10 gives g/kg)
-            # But check: values ~81 raw = 8.1 g/kg, which is realistic
-            # SoilGrids OC is stored as cg/kg (need /10 for g/kg)
-            oc_bands[band] = arr / 10.0
-        else:
-            oc_bands[band] = np.full(target_shape, 8.0)  # Barcelona typical
+    # ── Six-layer SoilGrids loader ────────────────────────────────────────
+    # SoilGrids 2.0 native depth intervals: 0-5, 5-15, 15-30, 30-60, 60-100, 100-200 cm
+    # We load all six for carbon AND texture, bulk density, pH — the cross-section
+    # visualizer and the 6-layer RothC integration both need per-depth data.
+    SOIL_BANDS = ("b0", "b10", "b30", "b60", "b100", "b200")
+    N_LAYERS = 6
 
-    # Average into 3 layers: [0-30cm, 30-100cm, 100+cm]
-    oc_layer0 = np.mean([oc_bands["b0"],  oc_bands["b10"]], axis=0)   # 0-30cm
-    oc_layer1 = np.mean([oc_bands["b30"], oc_bands["b60"]], axis=0)   # 30-100cm
-    oc_layer2 = np.mean([oc_bands["b100"],oc_bands["b200"]], axis=0)  # 100cm+
-    # Stack: shape (rows, cols, 3)
-    organic_carbon_3layer = np.stack([oc_layer0, oc_layer1, oc_layer2], axis=-1)
+    def load_six_bands(variable_name: str, scale: float, default: float,
+                       lo: float, hi: float) -> np.ndarray:
+        """Load 6 SoilGrids depth bands for one variable, returning (rows, cols, 6)."""
+        layers = []
+        for band in SOIL_BANDS:
+            arr = load(variable_name, band)
+            if arr is None:
+                arr = np.full(target_shape, default)
+            else:
+                arr = arr / scale
+            layers.append(np.clip(arr, lo, hi))
+        return np.stack(layers, axis=-1)  # (rows, cols, 6)
 
-    # ── Soil texture ──────────────────────────────────────────────────────
-    sand_arr = load("Sand_Content", "b0")
-    clay_arr = load("Clay_Content", "b0")
-    if sand_arr is None:
-        sand_arr = np.full(target_shape, 350.0)  # g/kg (SoilGrids units); /10 below → 35%
-    if clay_arr is None:
-        clay_arr = np.full(target_shape, 250.0)  # g/kg; /10 below → 25%
-    # SoilGrids sand/clay stored as g/kg, divide by 10 for %
-    sand_pct = np.clip(sand_arr / 10.0, 1, 98)
-    clay_pct = np.clip(clay_arr / 10.0, 1, 60)
-    silt_pct = np.clip(100.0 - sand_pct - clay_pct, 0, 90)
+    # Organic carbon — SoilGrids stores cg/kg, scale=10 gives g/kg
+    organic_carbon_6layer = load_six_bands(
+        "Organic_Carbon", scale=10.0, default=8.0, lo=0.01, hi=200.0
+    )
+    oc_layer0 = organic_carbon_6layer[:, :, 0]  # surface (0-5cm) alias
 
-    # ── Bulk density ──────────────────────────────────────────────────────
-    bd_arr = load("Bulk_Density", "b0")
-    if bd_arr is not None:
-        # SoilGrids BD stored as cg/cm³ → divide by 100 for g/cm³ (= t/m³)
-        bulk_density = np.clip(bd_arr / 100.0, 0.8, 2.2)
-    else:
-        bulk_density = np.full(target_shape, 1.35)
+    # Sand / clay — SoilGrids stores g/kg, scale=10 gives %
+    sand_6layer = load_six_bands(
+        "Sand_Content", scale=10.0, default=350.0 / 10.0, lo=1.0, hi=98.0
+    )
+    clay_6layer = load_six_bands(
+        "Clay_Content", scale=10.0, default=250.0 / 10.0, lo=1.0, hi=60.0
+    )
+    silt_6layer = np.clip(100.0 - sand_6layer - clay_6layer, 0.0, 90.0)
 
-    # ── Soil pH ───────────────────────────────────────────────────────────
-    ph_arr = load("Soil_pH", "b0")
-    if ph_arr is not None:
-        # SoilGrids pH stored as pH×10 → divide by 10
-        soil_ph = np.clip(ph_arr / 10.0, 3.5, 9.5)
-    else:
-        soil_ph = np.full(target_shape, 7.2)
+    # Bulk density — SoilGrids stores cg/cm³, scale=100 gives g/cm³ = t/m³
+    bulk_density_6layer = load_six_bands(
+        "Bulk_Density", scale=100.0, default=1.35, lo=0.8, hi=2.2
+    )
+
+    # pH — SoilGrids stores pH×10, scale=10 gives pH units
+    soil_ph_6layer = load_six_bands(
+        "Soil_pH", scale=10.0, default=7.2, lo=3.5, hi=9.5
+    )
+
+    # Surface aliases — every legacy consumer that expected a 2-D (rows, cols) array
+    # continues to work from the surface layer (0-5 cm band).
+    sand_pct     = sand_6layer[:, :, 0]
+    clay_pct     = clay_6layer[:, :, 0]
+    silt_pct     = silt_6layer[:, :, 0]
+    bulk_density = bulk_density_6layer[:, :, 0]
+    soil_ph      = soil_ph_6layer[:, :, 0]
+
+    # The engine consumes `organic_carbon` as the full per-layer stack.
+    # The shape changes from (rows, cols, 3) to (rows, cols, 6) — engine.py
+    # reads N_LAYERS from the trailing axis.
+    organic_carbon_layered = organic_carbon_6layer
 
     # ── Texture class (USDA) ──────────────────────────────────────────────
     tex_arr = load("Soil_Texture")
@@ -263,8 +274,18 @@ def extract_initial_conditions(
         chirps_std = 45.0
 
     result = {
-        "organic_carbon":       organic_carbon_3layer,   # (rows, cols, 3) g/kg
-        "organic_carbon_layer0": oc_layer0,               # (rows, cols) surface
+        "organic_carbon":       organic_carbon_layered,   # (rows, cols, 6) g/kg
+        "organic_carbon_layer0": oc_layer0,                # (rows, cols) surface alias
+
+        # 6-layer SoilGrids stacks — consumed by the cross-section visualiser and by
+        # the 6-layer RothC integration. Shape (rows, cols, 6) for each.
+        "organic_carbon_6layer": organic_carbon_6layer,
+        "sand_pct_6layer":       sand_6layer,
+        "clay_pct_6layer":       clay_6layer,
+        "silt_pct_6layer":       silt_6layer,
+        "bulk_density_6layer":   bulk_density_6layer,
+        "soil_ph_6layer":        soil_ph_6layer,
+
         "soil_ph":              soil_ph,
         "bulk_density":         bulk_density,
         "sand_pct":             sand_pct,
@@ -286,16 +307,20 @@ def extract_initial_conditions(
         "region":               reg,
     }
 
-    # For single-point extraction, reduce to scalars
+    # For single-point extraction, reduce to scalars by taking the MEAN over
+    # the 3×3 window around the point rather than the centre cell. The centre
+    # cell alone can hit a SoilGrids outlier (e.g. a built-up or water pixel
+    # with OC ≈ 0.3 g/kg), which then sends the legacy 1-cell RothC forecast
+    # into physically meaningless territory (a 742 % change on a 0.3-baseline).
+    # The mean is robust to single-pixel anomalies while staying local.
     if not use_grid:
-        cr, cc = rows // 2, cols // 2  # centre cell
         scalar_result = {}
         for k, v in result.items():
             if isinstance(v, np.ndarray) and v.ndim >= 2:
                 if v.ndim == 3:
-                    scalar_result[k] = v[cr, cc, :]
+                    scalar_result[k] = v.mean(axis=(0, 1))          # (n_layers,)
                 else:
-                    scalar_result[k] = float(v[cr, cc])
+                    scalar_result[k] = float(v.mean())
             else:
                 scalar_result[k] = v
         return scalar_result

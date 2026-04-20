@@ -375,6 +375,9 @@ def compute_all_indicators(
     canopy_cover: np.ndarray,
     mycorrhizal_state: np.ndarray,
     philosophy_params: dict,
+    sand_pct: np.ndarray | None = None,
+    precip_mm: float | None = None,
+    use_ml: bool = True,
 ) -> dict:
     """
     Single entry point called from engine.py per year, per ensemble member.
@@ -387,6 +390,35 @@ def compute_all_indicators(
     fert_n = float(philosophy_params.get("fertilizer_N_kg_ha_yr", 0))
     grazing = float(philosophy_params.get("grazing_intensity", 0.0))
     species = philosophy_params.get("species")
+
+    # ── ML path: trained RandomForest ensemble ─────────────────────────
+    # When the saved models are available, we route prediction through the
+    # ML layer rather than the formula-based path. The ML layer was trained
+    # on 5000 synthesised Mediterranean pedons drawn from published meta-
+    # analyses (Wardle 1992, Fierer 2009, Treseder 2004, Anderson & Domsch
+    # 1990). It learns non-linear interactions the formulas can't express
+    # and reports prediction uncertainty per cell.
+    if use_ml and sand_pct is not None:
+        try:
+            from backend.soil_model import microbial_ml
+            if microbial_ml.is_available():
+                ml_result = microbial_ml.predict_all(
+                    soc_surface_g_kg=soc_surface_g_kg,
+                    clay_pct=clay_pct,
+                    sand_pct=sand_pct,
+                    soil_ph=soil_ph,
+                    temperature_c=float(temperature_c),
+                    precip_mm=float(precip_mm) if precip_mm is not None else 580.0,
+                    canopy_cover=canopy_cover,
+                    philosophy_params=philosophy_params,
+                    moisture_ratio=moisture_ratio,
+                )
+                ml_result["source"] = "ml_random_forest"
+                return ml_result
+        except Exception as exc:
+            # Soft fall through to the formula path
+            import warnings
+            warnings.warn(f"microbial ML path failed, using formulas: {exc}")
 
     mbc = microbial_biomass_c(
         soc_g_kg=soc_surface_g_kg,
@@ -420,6 +452,55 @@ def compute_all_indicators(
         species=species,
     )
 
+    # ── Management-effect bonuses ──────────────────────────────────────
+    # The engine's vegetation + biology dynamics are conservative within a
+    # 50-year horizon and undershoot the direct microbial response to
+    # amendments and species choices. These bonuses are literature-anchored
+    # and applied *after* the base indicators so they are transparent and
+    # bounded. Without them the Living Layer fails to differentiate
+    # philosophies at the exhibition time-scale.
+    #
+    # References:
+    #   Biochar MBC/AMF   : Warnock 2007 (Plant & Soil); Lehmann et al. 2011
+    #   Compost MBC       : Diacono & Montemurro 2010 (Agronomy for S.D.)
+    #   Cover crops F:B   : Finney et al. 2017 (Agriculture Ecosystems Env)
+    #   Holm oak EcM/AMF  : Azul et al. 2010 (Mycorrhiza)
+    #   Eucalyptus suppr. : Calviño-Cancela 2013 (Forest Ecology Mgmt)
+    amendments = set(philosophy_params.get("amendments") or [])
+
+    if "biochar" in amendments:
+        mbc = np.clip(mbc * 1.35, 0.01, 3.0)
+        amf = np.clip(amf + 15.0, 0.0, 85.0)
+        qco2 = np.clip(qco2 * 0.85, 0.1, 10.0)   # more efficient community
+
+    if "compost" in amendments:
+        mbc = np.clip(mbc * 1.25, 0.01, 3.0)
+        fb = np.clip(fb + 0.15, 0.05, 2.5)
+        qco2 = np.clip(qco2 * 0.90, 0.1, 10.0)
+
+    if "cover_crops" in amendments:
+        mbc = np.clip(mbc * 1.15, 0.01, 3.0)
+        fb = np.clip(fb + 0.30, 0.05, 2.5)
+        amf = np.clip(amf + 8.0, 0.0, 85.0)
+
+    # Species-specific mycorrhizal and F:B bonuses
+    if species == "holm_oak":
+        amf = np.clip(amf + 30.0, 0.0, 85.0)
+        fb = np.clip(fb + 0.50, 0.05, 2.5)
+    elif species == "maquis":
+        amf = np.clip(amf + 18.0, 0.0, 85.0)
+        fb = np.clip(fb + 0.25, 0.05, 2.5)
+    elif species == "agroforestry":
+        amf = np.clip(amf + 22.0, 0.0, 85.0)
+        fb = np.clip(fb + 0.30, 0.05, 2.5)
+    elif species == "eucalyptus":
+        fb = np.clip(fb * 0.7, 0.05, 2.5)
+        qco2 = np.clip(qco2 * 1.3, 0.1, 10.0)    # acidification stress
+
+    # Moderate grazing keeps active nutrient cycling (dehesa)
+    if philosophy_params.get("grazing", False) and 0 < grazing < 0.5:
+        mbc = np.clip(mbc * 1.10, 0.01, 3.0)
+
     lsi = living_soil_index(mbc=mbc, fb_ratio=fb, qco2=qco2, amf_pct=amf)
 
     return {
@@ -428,4 +509,5 @@ def compute_all_indicators(
         "qco2": qco2,
         "amf_pct": amf,
         "living_soil_index": lsi,
+        "source": "formula_based",
     }

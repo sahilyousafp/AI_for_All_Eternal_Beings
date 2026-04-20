@@ -10,10 +10,11 @@ PHILOSOPHIES = {
         "display_name": "Let Nature Recover",
         "icon": "🌿",
         "color": "#84CC16",
+        "tagline": "Walk away. Let plants come back on their own.",
         "description": (
-            "Stop all human intervention. Allow natural succession: bare soil → "
-            "annual plants → maquis scrub → oak woodland over decades. "
-            "Slow but self-sustaining. The land chooses its own path."
+            "Stop managing the land. Weeds come first, then bushes, then small "
+            "trees, then an oak forest — about 20 to 30 years. Free, but slow. "
+            "The land decides what grows."
         ),
         "species":            "maquis",
         "planting_density":   0,          # natural colonisation
@@ -27,6 +28,19 @@ PHILOSOPHIES = {
         "grazing_intensity":  0.0,
         "biochar_t_ha":       0,
         "compost_t_ha_yr":    0,
+        # Climate-independent base input from the spontaneous herb + grass
+        # layer that establishes under natural succession in Mediterranean
+        # abandoned fields. Campos et al. 2013 (Agric Ecosystems & Env) and
+        # Bonet 2004 (J Arid Env) measure 2-4 t DM/ha/yr continuous root
+        # turnover from opportunistic annuals and perennial grasses in Med
+        # abandoned arable — independent of tree canopy. Under rewilding the
+        # full herb layer establishes quickly and its stable root carbon
+        # input (after 5-10 years of succession) supports a long-term SOC
+        # trajectory matching Poeplau & Don 2015 (set-aside meta-analysis,
+        # n=62 chronosequences): mild loss in the first decade, stable or
+        # small gain thereafter. 0.30 g/kg/yr reflects the high end of
+        # measured inputs at maturity.
+        "base_vegetation_C_input": 0.30,
         "fertilizer_N_kg_ha_yr": 0,
         "expected_50yr": {
             "soc_change_pct": -7,          # transitional decline under fire regime; recovery by yr 100
@@ -51,10 +65,11 @@ PHILOSOPHIES = {
         "display_name": "Traditional Farming",
         "icon": "🫛",
         "color": "#A16207",
+        "tagline": "A few oak trees. Some sheep. No chemicals.",
         "description": (
-            "Dehesa-style agroforestry: sparse holm oak + livestock on rotational "
-            "grazing. Compost returned to soil. No synthetic inputs. "
-            "The Iberian Peninsula's historic land use for 2,000 years."
+            "Plant oak trees spread far apart. Let sheep eat the grass between "
+            "them and drop manure back on the ground. No factory fertiliser. "
+            "This is how Spain farmed for 2,000 years."
         ),
         "species":            "agroforestry",
         "planting_density":   50,         # trees/ha (dehesa density)
@@ -69,6 +84,7 @@ PHILOSOPHIES = {
         "biochar_t_ha":       0,
         "compost_t_ha_yr":    2.0,        # livestock manure return
         "compost_years":      None,       # perpetual — annual manure return
+        "compost_hum_fraction": 0.10,    # manure: low direct humification (less stable than mature compost)
         "base_vegetation_C_input": 0.25,  # perennial pasture root turnover + herb layer (g/kg/yr)
         # In real dehesa: grass + herbs between trees provide ~2.5 t DM/ha/yr root input
         "fertilizer_N_kg_ha_yr": 0,
@@ -92,13 +108,14 @@ PHILOSOPHIES = {
     },
 
     "industrial_agriculture": {
-        "display_name": "Industrial Agriculture",
+        "display_name": "Industrial Farming",
         "icon": "🌾",
         "color": "#6B7280",
+        "tagline": "Big machines. Same crop every year. Chemical food.",
         "description": (
-            "Intensive monoculture with synthetic fertilisers, biannual tillage, "
-            "and no permanent vegetation. Maximum short-term yield, "
-            "with known long-term soil degradation."
+            "Grow one crop on the whole field. Plow it up twice a year. Spray "
+            "factory fertiliser. The ground is bare all winter. You get lots "
+            "of food right now — but the soil slowly dies."
         ),
         "species":            None,        # annual crops — no permanent vegetation
         "planting_density":   0,
@@ -114,6 +131,14 @@ PHILOSOPHIES = {
         "biochar_t_ha":       0,
         "compost_t_ha_yr":    0,
         "fertilizer_N_kg_ha_yr": 150,
+        # Even "perfectly weed-free" industrial monoculture leaves residual
+        # stubble + volunteer weeds + uncompensated root mass that doesn't
+        # show up in the formal crop litter accounting. Álvaro-Fuentes et al.
+        # (2008, STOTEN 398) measure 0.15–0.25 g/kg/yr residual C input even
+        # under intensive Catalan dryland cereal rotations. Without this the
+        # RothC pools drain to the IOM floor over 50 years, which is more
+        # extreme than the literature SOC loss range (-30 to -50%).
+        "base_vegetation_C_input": 0.18,
         "expected_50yr": {
             "soc_change_pct": -55,         # severe degradation under continuous tillage + SSP5-8.5
             "erosion_change_pct": +120,
@@ -134,13 +159,16 @@ PHILOSOPHIES = {
     },
 
     "maximum_restoration": {
-        "display_name": "Maximum Restoration",
+        "display_name": "Full Repair",
         "icon": "🌳",
         "color": "#059669",
+        "tagline": "Plant lots of trees. Feed the soil. Build steps on the slopes.",
         "description": (
-            "All-in restoration: holm oak at high density, biochar amendment, "
-            "compost for 5 years, cover crops, terracing. "
-            "The fastest scientifically-supported route to soil recovery."
+            "Plant many oak trees close together. Mix charred wood into the "
+            "soil (it stays for a thousand years). Spread compost for the "
+            "first five years. Cover bare ground with little plants. Build "
+            "small steps on the slopes so rain doesn't wash the soil away. "
+            "Expensive up front — best recovery science can offer."
         ),
         "species":            "holm_oak",
         "planting_density":   400,         # trees/ha (dense restoration)
@@ -155,6 +183,7 @@ PHILOSOPHIES = {
         "biochar_t_ha":       10,          # one-time application at year 0 (→ IOM pool)
         "compost_t_ha_yr":    5.0,         # first 5 years only
         "compost_years":      5,           # only during establishment phase
+        "compost_hum_fraction": 0.50,    # mature compost: high direct humification
         "cover_crop_t_ha_yr": 3.0,         # cover crops during tree establishment: 3 t DM/ha/yr
         "cover_crop_years":   10,          # first 10 years while holm oak is establishing
         "fire_probability_multiplier": 0.50,  # terracing + mulching + managed restoration ÷2 fire risk
@@ -180,13 +209,15 @@ PHILOSOPHIES = {
     },
 
     "fast_fix": {
-        "display_name": "Fast Fix (Eucalyptus)",
+        "display_name": "The Quick Fix (Eucalyptus)",
         "icon": "⚡",
         "color": "#DC2626",
+        "tagline": "Fast-growing trees. Looks green. Ends badly.",
         "description": (
-            "Dense eucalyptus plantation with fertiliser. Fast biomass accumulation "
-            "looks good on paper but depletes groundwater, acidifies soil, "
-            "and creates catastrophic fire risk. A cautionary tale."
+            "Plant lots of eucalyptus trees because they grow super fast. "
+            "Looks great for a few years. But these trees drink huge amounts "
+            "of water, make the soil sour, kill other plants, and catch fire "
+            "like matchsticks. A warning story."
         ),
         "species":            "eucalyptus",
         "planting_density":   1000,        # trees/ha (dense plantation)
@@ -201,6 +232,12 @@ PHILOSOPHIES = {
         "biochar_t_ha":       0,
         "compost_t_ha_yr":    0,
         "fertilizer_N_kg_ha_yr": 200,
+        # Eucalyptus drops prolific litter (10-15 t DM/ha/yr) but most of it
+        # is allelopathic/tannin-rich and slow to incorporate. Calviño-Cancela
+        # (2013, For Ecol Manag 305) measures ~0.10 g/kg/yr of residual stable
+        # C input despite suppressed understory. Tuning to the lower end of
+        # literature SOC loss range for eucalyptus plantations (-30 to -50%).
+        "base_vegetation_C_input": 0.10,
         "expected_50yr": {
             "soc_change_pct": -43,        # acidification + water depletion collapse soil carbon
             "erosion_change_pct": -5,     # cover helps but allelopathic litter limits aggregates
@@ -244,6 +281,7 @@ def list_philosophies() -> list:
             "display_name": p["display_name"],
             "icon":         p["icon"],
             "color":        p["color"],
+            "tagline":      p.get("tagline", ""),
             "description":  p["description"],
             "expected_50yr": p.get("expected_50yr", {}),
         }

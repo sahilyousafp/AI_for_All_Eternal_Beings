@@ -144,7 +144,14 @@ def get_climate(scenario_id: str, year: int, seed: int = None) -> dict:
         pet                 : float  (mm/yr potential evapotranspiration)
         drought_index       : float  (0–1, 1=severe drought)
     """
-    scen = scenario_id if scenario_id in _INTERP else "ssp245"
+    # Normalize: accept both "ssp245" and "SSP2-4.5" style inputs
+    _norm_map = {
+        "SSP1-2.6": "ssp126", "SSP2-4.5": "ssp245",
+        "SSP3-7.0": "ssp370", "SSP5-8.5": "ssp585",
+    }
+    scen = _norm_map.get(scenario_id, scenario_id) if scenario_id not in _INTERP else scenario_id
+    if scen not in _INTERP:
+        scen = "ssp245"
     calendar_year = 2025 + int(year)
     interp = _INTERP[scen]
 
@@ -199,32 +206,44 @@ def get_scenario_display() -> list:
     return [
         {
             "id":          "ssp126",
-            "name":        "SSP1-2.6 — Sustainability",
-            "description": "Strong mitigation. Temperature peaks ~+1.3°C above 2020 levels by 2100, then stabilises. Precipitation declines only slightly (~5%). Most optimistic IPCC scenario.",
+            "name":        "Best Case",
+            "subtitle":    "The world cuts carbon fast",
+            "tech_label":  "IPCC SSP1-2.6",
+            "tagline":     "+1.3°C hotter · barely drier",
+            "description": "The world works together and cuts burning fossil fuels. By 2100 it's only 1.3°C warmer than today and then it stops getting hotter. Rain drops just a little (5%). This is the best hope scientists have.",
             "color":       "#22c55e",
             "delta_T_2100": 1.3,
             "delta_P_2100": -5,
         },
         {
             "id":          "ssp245",
-            "name":        "SSP2-4.5 — Middle Road",
-            "description": "Moderate mitigation. Temperature rises ~+2.7°C by 2100. Annual precipitation declines ~20%, summer rainfall ~30%. The most likely current trajectory.",
+            "name":        "Middle Road",
+            "subtitle":    "We try — but not hard enough",
+            "tech_label":  "IPCC SSP2-4.5",
+            "tagline":     "+2.7°C hotter · 20% less rain",
+            "description": "The world tries to cut carbon but doesn't quite get there. By 2100 it's 2.7°C hotter. Rain drops 20% across the year and 30% in summer. This is what scientists think will actually happen if we stay on our current path.",
             "color":       "#f59e0b",
             "delta_T_2100": 2.7,
             "delta_P_2100": -20,
         },
         {
             "id":          "ssp370",
-            "name":        "SSP3-7.0 — Regional Rivalry",
-            "description": "High emissions, fragmented policy. Temperature rises ~+3.6°C by 2100. Severe Mediterranean drying: -30% annual, -40% summer precipitation. Significant fire risk.",
+            "name":        "Bad Case",
+            "subtitle":    "Countries stop cooperating",
+            "tech_label":  "IPCC SSP3-7.0",
+            "tagline":     "+3.6°C hotter · 30% less rain",
+            "description": "Countries stop working together on climate. Carbon keeps rising. By 2100 it's 3.6°C hotter. Rain drops 30% across the year and 40% in summer. Lots of wildfires.",
             "color":       "#f97316",
             "delta_T_2100": 3.6,
             "delta_P_2100": -30,
         },
         {
             "id":          "ssp585",
-            "name":        "SSP5-8.5 — Fossil-Fuelled",
-            "description": "Very high emissions. Temperature rises ~+5.0°C by 2100. Catastrophic Mediterranean drought: -35% annual, -48% summer precipitation. High extreme precipitation intensity.",
+            "name":        "Worst Case",
+            "subtitle":    "We keep burning everything",
+            "tech_label":  "IPCC SSP5-8.5",
+            "tagline":     "+5.0°C hotter · 35% less rain",
+            "description": "The world keeps burning coal, oil, and gas like crazy. By 2100 it's 5°C hotter — the kind of heat humans have never lived through. Rain drops 35% across the year, 48% in summer. When it does rain, it floods.",
             "color":       "#ef4444",
             "delta_T_2100": 5.0,
             "delta_P_2100": -35,

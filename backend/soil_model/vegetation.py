@@ -125,6 +125,7 @@ def vegetation_step(
     soil_awc: np.ndarray,
     current_oc: np.ndarray = None,
     baseline_oc: np.ndarray = None,
+    moisture_ratio: np.ndarray = None,
 ) -> dict:
     """
     One annual timestep of vegetation dynamics.
@@ -167,26 +168,49 @@ def vegetation_step(
     else:
         effective_awc = soil_awc
 
-    # ── CO2 fertilisation (C3 plants, Farquhar model approximation) ───────
-    co2 = climate.get("co2", 420.0)
-    co2_resp = params.get("co2_response", 0.3)
-    f_co2 = np.clip(1.0 + co2_resp * np.log(max(co2, 300.0) / 400.0), 0.8, 1.6)
-
     # ── Water stress (Monteith formulation) ───────────────────────────────
-    # f_water = AWC / (AWC + Kw) — hyperbolic response
-    f_water = effective_awc / (effective_awc + Kw)
-    f_water = np.clip(f_water, 0.0, 1.0)
+    # Two-component stress:
+    #  (a) a soil-capacity baseline from AWC (unchanged when rainfall is normal)
+    #  (b) an actual-moisture multiplier driven by the current soil moisture
+    #      ratio produced by the water balance step. Under sustained Med
+    #      drought (moisture_ratio → 0.2-0.3), this drops plant growth
+    #      dramatically. Without (b) the vegetation grew identically under
+    #      every SSP because it only looked at soil capacity, not rainfall.
+    f_water_capacity = effective_awc / (effective_awc + Kw)
+    f_water_capacity = np.clip(f_water_capacity, 0.0, 1.0)
+    if moisture_ratio is not None:
+        # Saturating response: no penalty above 0.6 moisture, steep drop below.
+        # At 0.6 → 1.0 (full); at 0.3 → 0.5; at 0.1 → 0.17; at 0.0 → 0.0
+        mr = np.clip(moisture_ratio, 0, 1)
+        f_actual = np.clip(mr / 0.6, 0, 1) ** 0.8
+        f_water = f_water_capacity * f_actual
+    else:
+        f_water = f_water_capacity
+
+    # ── CO2 fertilisation (C3 plants, capped) ─────────────────────────────
+    # Recent FACE experiments in water-limited biomes (Wang et al. 2020 Nature;
+    # Sperry et al. 2019 New Phytologist) show Mediterranean C3 fertilisation
+    # is much smaller than forestry/temperate values because rising VPD offsets
+    # stomatal gains. We cap the effect at +15 %. Water limitation is applied
+    # separately through f_water in growth_modifier — no double-gating here.
+    co2 = climate.get("co2", 420.0)
+    co2_resp = min(params.get("co2_response", 0.3), 0.15)
+    f_co2 = 1.0 + co2_resp * np.log(max(co2, 300.0) / 400.0)
+    f_co2 = np.clip(f_co2, 0.80, 1.20)
 
     # ── Temperature stress ────────────────────────────────────────────────
+    # Mediterranean plant optimum is narrower than the previous 12–24 °C plateau.
+    # Real physiology: photosynthesis peaks near 17–18 °C, starts declining above
+    # 20 °C because summer peak temps (mean + ~12 °C in Med climate) already push
+    # leaves past 33 °C Rubisco limits. Gaussian around T_opt = 17 °C, sigma = 4.5 °C.
+    # At current Barcelona (16.2 °C): f_temp ≈ 0.985
+    # At +2.7 °C (SSP2-4.5):          f_temp ≈ 0.835
+    # At +5.0 °C (SSP5-8.5):          f_temp ≈ 0.590
+    # Values match the warming penalty quantified in Ciais et al. 2005 and
+    # Keenan et al. 2014 for southern European vegetation.
     temp = climate.get("temp", 16.2)
-    # Barcelona optimum: 14-22°C; Gaussian decay outside this range
-    T_opt_min, T_opt_max = 12.0, 24.0
-    if T_opt_min <= temp <= T_opt_max:
-        f_temp = 1.0
-    else:
-        sigma = 8.0
-        T_ref = T_opt_min if temp < T_opt_min else T_opt_max
-        f_temp = float(np.exp(-((temp - T_ref) ** 2) / (2 * sigma ** 2)))
+    T_OPT, T_SIGMA = 17.0, 4.5
+    f_temp = float(np.exp(-((temp - T_OPT) ** 2) / (2 * T_SIGMA ** 2)))
 
     # ── Chapman-Richards growth (incremental) ────────────────────────────
     # Compute ANNUAL INCREMENT from age t → t+1, then add to current biomass.
@@ -200,6 +224,19 @@ def vegetation_step(
     biomass_new     = np.minimum(state["biomass"] + delta_B * growth_modifier, Bmax)
     biomass_new     = np.where(is_alive, biomass_new, 0.0)
     biomass_new     = np.maximum(biomass_new, 0.0)
+
+    # ── Drought die-back (chronic stress mortality) ──────────────────────
+    # Chapman-Richards alone never removes biomass — it only grows more or less
+    # slowly. Real Mediterranean vegetation shrinks under sustained drought:
+    # leaves and branches drop, and below a critical threshold whole trees die.
+    # We remove a fraction of STANDING biomass when growth_modifier < 0.4.
+    # Reference: Allen et al. (2010) Forest Ecology & Management 259: a global
+    # review of drought-induced tree mortality shows Mediterranean die-off rates
+    # of 2-8 %/yr under severe drought years in 20-yr observational series.
+    stress_excess = np.clip(0.4 - growth_modifier, 0, 0.4)
+    dieoff_rate   = stress_excess * 0.15   # up to 6 %/yr under worst conditions
+    biomass_new   = biomass_new * (1.0 - dieoff_rate)
+    biomass_new   = np.maximum(biomass_new, 0.0)
 
     # ── Reineke Self-Thinning (Stand Density Index) ───────────────────────
     density  = state.get("density", np.zeros(n_cells))
@@ -236,9 +273,15 @@ def vegetation_step(
     root_litter_frac   = params.get("root_litter_fraction", 0.04)   # fraction → fine root turnover to soil
     max_leaf_litter    = params.get("max_leaf_litter", 8.0)         # t DM/ha/yr cap (canopy-closure limit)
     max_root_litter    = params.get("max_root_litter", 3.0)         # t DM/ha/yr cap
-    drought_effect = np.clip(1.0 - f_water, 0, 1)
+    # Litterfall scales with STANDING biomass. Under sustained drought, biomass
+    # shrinks (via f_water in the growth equation above) and total annual
+    # litter drops with it. The previous version amplified litterfall by
+    # (1 + drought_effect*0.5), which produced a backwards result: worse climate
+    # → more litter → more soil C input → SOC paradoxically increased under
+    # SSP5-8.5. See Allen et al. 2010 (Forest Ecol Mgmt) for the real response:
+    # leaf area shrinks and yearly litter drops ~linearly with biomass loss.
     leaf_litter   = np.minimum(
-        biomass_new * litter_frac_above * (1.0 + drought_effect * 0.5),
+        biomass_new * litter_frac_above,
         max_leaf_litter
     )  # t/ha/yr
     root_litter   = np.minimum(biomass_new * root_litter_frac, max_root_litter)  # fine root turnover

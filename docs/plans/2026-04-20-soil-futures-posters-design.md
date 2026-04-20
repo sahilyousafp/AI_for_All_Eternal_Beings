@@ -1,4 +1,4 @@
-# Soil Futures Exhibition — 4 Cylinder Design + Interaction + Take-away Card
+# Soil Futures Exhibition — 4 Cylinder Design + Interaction + Seed-paper Wristband
 
 **Date:** 2026-04-20
 **Author:** brainstorming session (Rafik + Claude, via Telegram)
@@ -9,9 +9,9 @@
 
 ## Context
 
-Physical Soil Futures stand for IAAC Barcelona 2026 ("AI for All" exhibition). Four cylinders on a curved wall (confirmed dimensions: 5.00m arc × 1.75m deep, cylinders 40cm ⌀ × 160cm tall), plus a tablet kiosk at the front. Cylinders I–III are static story cylinders; Cylinder IV is the interactive AI station that runs the Three.js simulation and prints a take-away card.
+Physical Soil Futures stand for IAAC Barcelona 2026 ("AI for All" exhibition). Four cylinders on a curved wall (confirmed dimensions: 5.00m arc × 1.75m deep, cylinders 40cm ⌀ × 160cm tall), plus a tablet kiosk at the front. Cylinders I–III are static story cylinders; Cylinder IV is the interactive AI station that runs the Three.js simulation. Every visitor leaves with a **seed-paper wristband** — a universal, plantable token they wear during the visit and plant after.
 
-This spec covers: narrative arc, per-cylinder imagery/copy, visual system, visitor interaction, take-away card, and the €500 budget allocation.
+This spec covers: narrative arc, per-cylinder imagery/copy, visual system, visitor interaction, seed-paper wristband take-away, and the €500 budget allocation.
 
 The non-negotiable constraint, inherited from the exhibition's rule: **every visual must pass the "random visitor understands it in 3 seconds" test.** Beauty is not enough — legibility is the higher bar.
 
@@ -32,7 +32,7 @@ The non-negotiable constraint, inherited from the exhibition's rule: **every vis
 | Interactivity | **Only Cylinder IV is interactive.** Cylinders I–III are static |
 | Interaction mode | **Two-step pick.** Step 1: 5 philosophies (rewild / regenerate / conventional / over-farm / do-nothing). Step 2: 4 climate SSPs. Two taps total |
 | Cylinder IV payoff | **A + cheap LED glow ring.** Tablet animates the chosen future, thin LED ring at top of cylinder shifts color to match |
-| Take-away | **2×3" colour ZINK card**, printed on the spot by a thermal photo printer in the plinth. Painterly front, info back. **No QR code.** |
+| Take-away | **Universal seed-paper wristband.** Plantable Mediterranean-wildflower-seed paper, single design for all visitors. They wear it during the exhibit, plant it after. **No card, no thermal printer, no QR code.** |
 | Continuity anchor | Same fungal network visible in I–III wraps with the same hyphal shape. Only density/color change |
 | Deep-time ribbon | Thin printed strip across the top of cylinders I–III: 2000y ago (Roman forests) → 1800 (Industrial Rev.) → 1950 → 2026 → 2076 |
 | Text budget | One serif display headline + one subhead + 2-3 brief fact lines per cylinder. Zero paragraphs |
@@ -94,7 +94,7 @@ Split composition around the cylinder.
 - Left half: the same fungus network from I–III, shown as a decision tree — branching paths glowing different colors (green-gold regenerate, warm ember business-as-usual, pale collapse, bright gold thriving).
 - Right half: the AI shown abstractly — constellation-like nodes in the same painterly Ghibli glow, as if the fungus has become a neural network.
 
-**Tablet UX — two-step pick:**
+**Tablet UX — two-step pick + results screen:**
 
 *Screen 1 — "What do we do with the land?"* (5 buttons, big, icon + plain words):
 - 🌱 Let nature come back
@@ -109,7 +109,9 @@ Split composition around the cylinder.
 - 🌵 Drought future
 - 🔥 Hottest future
 
-Two taps. Animation plays on the tablet (~15-20 seconds of soil transformation based on the simulation engine output for that combination). LED glow ring shifts to the matching color. Take-away card prints from the plinth printer.
+*Screen 3 — Animation + results.* ~15-20 seconds of soil transformation based on the simulation engine output for that combination. Overlay the three key numbers on the animation (e.g. *+40% biodiversity · +25% carbon · -30% erosion · by 2076*) and one short honest interpretation line. LED glow ring shifts to the matching color.
+
+*Screen 4 — Take-away prompt.* A simple final screen: *"Take a wristband as you leave. Plant it when you get home."* A basket of universal seed-paper wristbands sits on the plinth next to the tablet — self-serve.
 
 **Copy on the wrap (short blocks around the cylinder):**
 1. *How we predict.* We teach an AI what happens when you do X vs Y, using 50 years of real soil measurements. Then we let it run the next 50 years thousands of times.
@@ -145,56 +147,67 @@ Thin printed strip running across the top of cylinders I, II, III. Markers: 2000
 | 0:40–0:50 | Arrives at Cylinder IV. Tablet shows attract loop ("Touch a column. Pick a future.") | Silent | Tablet gently pulses |
 | 0:50–1:05 | Screen 1 — picks a philosophy | Silent | Big tap, screen transitions |
 | 1:05–1:20 | Screen 2 — picks a climate | Silent | Big tap |
-| 1:20–1:45 | Simulation animation plays on tablet. LED glow ring shifts color. Thermal printer whirs. | Silent (the printer hum is the only sound in the exhibit) | Tablet animates the future; ring glows |
-| 1:45–2:00 | Visitor pulls the printed card from the plinth slot | Silent | Card emerges |
-| 2:00 | Visitor walks away with card in hand. Kiosk resets after 15s idle. | Silent | Attract loop resumes |
+| 1:20–1:45 | Simulation animation plays on tablet with numbers overlay. LED glow ring shifts color. | Silent | Tablet animates the future; ring glows; three numbers appear |
+| 1:45–2:00 | Final screen prompts them to take a wristband from the basket on the plinth. | Silent | Static prompt |
+| 2:00 | Visitor walks away with seed-paper wristband. Kiosk resets after 15s idle. | Silent | Attract loop resumes |
 
-## Take-away card
+## Take-away — seed-paper wristband
 
-**Format:** 2×3 inches (54×86 mm). Printed by thermal ZINK printer (e.g. HP Sprocket or Canon Zoemini). No QR code.
+**Format:** universal seed-paper wristband. One design for every visitor (no per-combo variants). Mediterranean-wildflower seeds embedded in recycled paper, cut into wristband strips, closed with a small adhesive tab.
 
-**Front (painterly):**
-A painterly image of the chosen future, same fungal-network motif as the cylinders, colored to match the choice (green-gold for regenerate / ember for over-farm / etc.). Generated on the spot based on the visitor's pick — pre-rendered set of 20 front-side images (5 philosophies × 4 SSPs), indexed by pick.
+**Design (single universal):**
+- Exhibit name — *Soil Futures · Barcelona 2026*
+- A small painterly motif of the fungal network (same as the cylinders, so the wristband reads as part of the family)
+- Plain-language instruction: *"Plant me when you get home — Mediterranean wildflowers"*
+- Small care line: *"Soil, water, sunlight. A few weeks."*
 
-**Back (info):**
-- Big: *"YOU CHOSE: Regenerate the land. Cool future."* (or whatever they picked)
-- Three big numbers (pulled from the Python simulation engine for that combo): e.g. *+40% biodiversity · +25% carbon · -30% erosion · by 2076*
-- One honest one-line interpretation: *"The soil you leave behind would be richer than what you started with."*
-- Small footer: *Barcelona 2026 · Soil Futures*
+**Dimensions:** ~20-25 cm long × 1.5-2 cm wide, strip form. Fits most adult wrists.
+
+**Seed mix:** Mediterranean natives only (lavender, thyme, chamomile, poppy, cornflower). NEVER a generic wildflower mix — some commercial mixes contain non-native or invasive species. The supplier must confirm the seed list.
+
+**Rationale for universality (not per-combo variants):**
+The tablet carries the personalization — the chosen future, the numbers, the interpretation. The wristband carries the *shared* act: everyone who leaves the exhibit plants a future. This splits the memento into two channels (data-memento on the tablet, earth-memento on the wrist) and is cheaper than 4+ pre-printed variants.
+
+**Distribution:**
+Basket on the plinth next to the tablet, self-serve. Final tablet screen prompts: *"Take a wristband as you leave."* No staff required.
+
+**Where the combo-specific data lives:**
+On the tablet during the animation (numbers + interpretation overlay). If visitors want to remember the specifics they'll photograph the screen — which is fine; phones are already pointed at exhibits anyway.
 
 ## Budget allocation (€500 hard cap)
 
 | Item | Estimate |
 |---|---|
 | 4 opaque cylinders (Sonotube cardboard or PVC, 40cm ⌀ × 160cm, painted or wrapped) | €80-120 |
-| Printed wraps for I, II, III (high-res matte vinyl, from local print shop) | €60-90 |
-| Cylinder IV wrap + frosted acrylic glow ring with cheap WS2812 LED + ESP32 controller | €30-50 |
-| Tablet for Cylinder IV (reuse existing iPad/Android if possible) | €0-120 |
+| Printed wraps for I, II, III, IV (high-res matte vinyl, local print shop) | €90-140 |
+| Cylinder IV glow ring (frosted acrylic + WS2812 LED + ESP32 controller) | €30-50 |
+| Tablet for Cylinder IV (reuse existing iPad/Android) | €0 |
 | Plinth / tablet stand (plywood + paint) | €20-30 |
-| **Thermal photo printer** (HP Sprocket / Canon Zoemini / Polaroid Zip) | €100-130 |
-| ZINK card stock (~100 cards for the exhibit) | €30-50 |
+| **Seed-paper wristbands** (universal design, ~100-200 units, Mediterranean wildflower mix) | **€100-150** |
 | Deep-time ribbon printed strip | €10-15 |
 | Base platform / floor mat to define booth | €40-60 |
 | Contingency | €30-50 |
-| **Total** | **~€400-715** (target ~€420 tightest) |
+| **Total** | **~€400-615** (target ~€500 ceiling; tightest ~€400) |
 
 **Out-of-scope at this budget:**
 - ❌ Transparent acrylic cylinders with real soil inside (Term 2 "Beneath the Surface" concept) — €400-800 just for the tubes
 - ❌ Wall projection option C (€600-1500)
 - ❌ Full-length LED strips inside each cylinder (€200+ across 4 cylinders) — only the top ring on Cylinder IV gets LEDs
+- ❌ Thermal photo printer + ZINK card stock (dropped with the card concept) — saved ~€130-180
+- ❌ Per-combo wristband variants (minimum-order math doesn't fit €500) — single universal design only
 
 ## Image-generation workflow
 
-AI image generation produces: the four cylinder wraps (I, II, III, IV), the 20 painterly front-of-card images (5 × 4 combos), and the attract-loop visuals on the tablet.
+AI image generation produces: the four cylinder wraps (I, II, III, IV), the attract-loop visuals on the tablet, the 20 painterly animation frames shown during Screen 3 of the interaction (one painterly end-state image per combo, used during the simulation animation overlay), and the small fungal-network motif printed on the seed-paper wristband.
 
 **Pipeline:**
 1. Claude drafts a detailed prompt file per asset (subject, composition, style refs, color palette, continuity constraints, negative prompts).
 2. Rafik runs each through the chosen image-gen API.
-3. Iterate 3-5 generations per asset. Pick winners, refine, regenerate until the cylinder wraps read as one family and the card fronts look like variations of the same universe.
+3. Iterate 3-5 generations per asset. Pick winners, refine, regenerate until the cylinder wraps read as one family and the 20 animation end-states look like variations of the same universe.
 4. Compositing in Figma or Photoshop — text overlay, ribbon, final grading.
 5. Rafik approves. Print-ready files exported.
 
-**Budget estimate:** ~100-140 API generations total (4 cylinder wraps × 5 iterations + 20 card fronts × 3 iterations = 80-ish, plus attract-loop assets).
+**Budget estimate:** ~80-120 API generations total (4 cylinder wraps × 5 iterations + 20 animation end-states × 3 iterations + wristband motif + attract-loop assets).
 
 **API options (final pick pending Rafik's account access):**
 
@@ -210,16 +223,18 @@ AI image generation produces: the four cylinder wraps (I, II, III, IV), the 20 p
 ## Dependencies
 
 - **2026-04-15 exhibition 3D visuals design** — Cylinder IV's tablet animation comes from the Three.js scene being built there.
-- **Python simulation engine** — the three numbers on the card back come from `backend/soil_model/engine.py` output for the chosen philosophy × SSP combination. This already works for 20 combinations (5 philosophies × 4 SSPs).
+- **Python simulation engine** — the three numbers overlaid on the tablet animation come from `backend/soil_model/engine.py` output for the chosen philosophy × SSP combination. This already works for 20 combinations (5 philosophies × 4 SSPs).
+- **Seed-paper wristband supplier** — lead time is 2-3 weeks for bulk orders. This is the longest-lead-time item in the build and should be ordered first.
 - **Citation sweep** — fact-line claims ("2× denser fungi," "Half the soil carbon lost," etc.) need traceable citations (Calvo de Anta, Álvaro-Fuentes, Rubio groups) before print to avoid fact-check risk.
 
 ## Open items to confirm before print
 
-- Which tablet we're using (existing or new purchase — affects budget)
-- Which image-gen API (affects prompt file format)
+- Which tablet we're using — Rafik's existing iPad/Android is the default (budget assumes €0 here)
+- Which image-gen API (Flux Pro / Midjourney / Nano Banana / DALL·E) — depends on account access
 - Final copy wording after citation sweep (some fact-line numbers may need to move)
-- Supplier for the cardboard/PVC cylinders (local shop in Barcelona once on-site, or pre-ordered)
-- Supplier for the printed vinyl wraps (local Barcelona print shop, turnaround ~3-5 days)
+- Supplier for the cardboard/PVC cylinders (local Barcelona source once on-site)
+- Supplier for the printed vinyl wraps (local Barcelona print shop, ~3-5 day turnaround)
+- **Seed-paper wristband supplier** (Growing Paper NL, Botanical Paperworks, Seedpaper.es, or Pappier FR — request Mediterranean native seed mix, ask about minimum order, 2-3 week lead time)
 
 ## What this spec does not cover
 
@@ -233,19 +248,21 @@ AI image generation produces: the four cylinder wraps (I, II, III, IV), the 20 p
 - Walking past all three soil cylinders, without stopping to read, they feel the arc: abundance → tired → forgetting.
 - Reading only headlines they come away with: "Soil has been thinning for 200 years. Still here, barely. Could go either way from here. And I can see the futures I didn't choose."
 - Cylinder IV explicitly answers "what is AI actually doing here" on the printed wrap — no hand-waving.
-- Every visitor who interacts walks away with a physical card of their chosen future.
+- Every visitor who interacts walks away with a plantable seed-paper wristband — a living souvenir of Barcelona 2026 that becomes wildflowers where they live.
+- A measurable share (>30%) of wristbands actually get planted (self-reported, optional post-exhibit follow-up).
 - Total build cost ≤ €500.
 
 ## Next steps after this spec approves
 
 1. Invoke `writing-plans` to create the implementation plan covering:
-   - Drafting prompt files for AI image generation (4 wraps + 20 card fronts + attract loop)
+   - Drafting prompt files for AI image generation (4 cylinder wraps + 20 animation end-states + wristband motif + attract loop)
    - Citation sweep for fact lines
    - Choosing and provisioning the image-gen API
    - Iteration rounds for each asset
    - Figma/Photoshop compositing
-   - Hardware sourcing (cylinders, printer, tablet, LED ring, plinth)
-   - Tablet UX implementation (two-step pick + simulation animation + print trigger)
+   - Hardware sourcing (cylinders, tablet reuse, LED ring + ESP32, plinth, seed-paper wristband supplier)
+   - Tablet UX implementation (two-step pick + simulation animation with numbers overlay + wristband prompt)
    - Print prep and physical assembly
-2. Fabrication: can begin in parallel with image generation once dimensions are locked.
-3. Begin prompt drafting and first-round generation.
+2. Seed-paper wristband supplier selection + order (min 100 units, Mediterranean natives only, lead time ~2-3 weeks — order early).
+3. Fabrication: can begin in parallel with image generation once dimensions are locked.
+4. Begin prompt drafting and first-round generation.

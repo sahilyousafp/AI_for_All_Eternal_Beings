@@ -6,10 +6,11 @@
 **Branch:** v6.7
 **Budget:** €500 total (hard cap)
 **Depends on:** `2026-04-15-exhibition-3d-visuals-design.md` (Cylinder IV's interactive Three.js scene)
+**Source-of-truth for geometry:** `Model_2.dae` (SketchUp 2026-04-20 export) — see `2026-04-20-sketchup-model-dimensions.md` for the full extraction. Any contradiction is resolved by the model.
 
 ## Context
 
-Physical Soil Futures stand for IAAC Barcelona 2026 ("AI for All" exhibition). Four cylinders on a curved wall (confirmed dimensions: 5.00m arc × 1.75m deep, cylinders 40cm ⌀ × 160cm tall), plus a tablet kiosk at the front. Cylinders I–III are static story cylinders; Cylinder IV is the interactive AI station that runs the Three.js simulation. Every visitor leaves with a **seed-paper wristband** — a universal, plantable token they wear during the visit and plant after.
+Physical Soil Futures stand for IAAC Barcelona 2026 ("AI for All" exhibition). Four **half-cylinders** mounted flush against the back wall of a curved booth (outer footprint 5.00 m × 1.92 m, back wall 4 m wide × 2.75 m tall), each cylinder **25 cm wide × 12.5 cm deep × 100 cm tall**, mounted at chest-to-head height (0.75 m – 1.75 m off the floor), plus a standing tablet kiosk at the front. Cylinders I–III are static story cylinders; Cylinder IV is the interactive AI station that runs the Three.js simulation. Every visitor leaves with a **seed-paper wristband** — a universal, plantable token they wear during the visit and plant after.
 
 This spec covers: narrative arc, per-cylinder imagery/copy, visual system, visitor interaction, seed-paper wristband take-away, and the €500 budget allocation.
 
@@ -24,9 +25,11 @@ The non-negotiable constraint, inherited from the exhibition's rule: **every vis
 | Visual style | Ghibli-painterly × macro-photographic fusion — real Mediterranean soil/landscape photography with hand-painted luminous fungal threads overlaid |
 | Narrative | Grief arc: "ground was still working" → "ground is tired" → "ground is forgetting how to be alive" |
 | Honesty calibration | No Eden. Soil has been thinning since the Industrial Revolution — 1950 is the last moment biology still mostly worked |
-| Cylinder physical form | **Opaque cylinders with printed wraps** (not transparent acrylic) — budget reality |
-| Cylinder dimensions | 40cm ⌀ × 160cm tall, 4 cylinders on the arc |
-| Booth footprint | 5.00m wide × 1.75m deep, curved wall |
+| Cylinder physical form | **Opaque half-cylinders with printed wraps** (not transparent acrylic, not full cylinders) — mounted flush against the back wall, only the front half is visible |
+| Cylinder dimensions | **25 cm wide × 12.5 cm deep × 100 cm tall**, 4 on the back wall, mounted at Z 0.75 m to 1.75 m (chest-to-head height). Per source-of-truth `Model_2.dae`. |
+| Cylinder spacing | ~1.05 m centre-to-centre, ~80 cm edge-to-edge gap, total span along back wall ~4.64 m |
+| Wrap dimensions per cylinder | ~39 cm wide (half-circumference of a 25 cm diameter) × 100 cm tall — the printed panel curves around the visible front half |
+| Booth footprint | Outer volume 5.00 m × 1.92 m × 2.65 m; **flat mountable back wall 4 m × 2.75 m** |
 | Sound | **Silent.** No music, no narration, no ambient audio |
 | Reading | Visitors read cylinders I–III silently. Brief copy, nothing wordy |
 | Interactivity | **Only Cylinder IV is interactive.** Cylinders I–III are static |
@@ -87,7 +90,7 @@ Same square meter, 50 years on. Above: cracked dry earth, no plants, hot dust, d
 
 **Emotional beat:** Agency. Hope earned, not given.
 
-**Physical form:** Opaque cylinder with printed wrap + tablet mounted on or beside it + a thin frosted acrylic LED glow ring at the top. When the visitor picks a future, the ring shifts color to match (green-gold for regenerate, ember for over-farm, pale for collapse, bright gold for thriving).
+**Physical form:** Opaque half-cylinder (25 cm wide × 12.5 cm deep × 100 cm tall) with printed wrap, mounted on the back wall identically to I–III. The **tablet kiosk** is a separate standing element at the front of the booth (1.4 m × 0.17 m × 0.77 m per the SketchUp model, tablet surface at ~1.4 m off the floor). A thin frosted acrylic LED glow ring sits at the top of Cylinder IV's half-cylinder; when the visitor picks a future, the ring shifts colour to match (green-gold for regenerate, ember for over-farm, pale for collapse, bright gold for thriving).
 
 **Image concept (printed wrap):**
 Split composition around the cylinder.
@@ -178,16 +181,20 @@ On the tablet during the animation (numbers + interpretation overlay). If visito
 
 | Item | Estimate |
 |---|---|
-| 4 opaque cylinders (Sonotube cardboard or PVC, 40cm ⌀ × 160cm, painted or wrapped) | €80-120 |
-| Printed wraps for I, II, III, IV (high-res matte vinyl, local print shop) | €90-140 |
-| Cylinder IV glow ring (frosted acrylic + WS2812 LED + ESP32 controller) | €30-50 |
+| 4 opaque half-cylinders (Sonotube/PVC **25 cm ⌀** cut longitudinally to 100 cm half-tubes; painted) | €40-70 |
+| Printed wraps for I, II, III, IV (~39 × 100 cm each, 4 panels, high-res matte vinyl) | €40-70 |
+| Cylinder IV glow ring (frosted acrylic + WS2812 LED + ESP32 controller) | €25-40 |
 | Tablet for Cylinder IV (reuse existing iPad/Android) | €0 |
-| Plinth / tablet stand (plywood + paint) | €20-30 |
-| **Seed-paper wristbands** (universal design, ~100-200 units, Mediterranean wildflower mix) | **€100-150** |
-| Deep-time ribbon printed strip | €10-15 |
-| Base platform / floor mat to define booth | €40-60 |
+| Tablet kiosk / standing stand (1.4 m × 0.17 m × 0.77 m — per model) | €30-50 |
+| Back-wall mounting hardware (brackets to fix half-cylinders at Z 0.75 m) | €20-40 |
+| **Seed-paper wristbands** (universal design, ~100-200 units, Mediterranean wildflower mix) | €100-150 |
+| Deep-time ribbon printed strip (4 m wide × narrow, printed) | €10-20 |
+| Back-wall + mid / top band structure (4 m × 2.75 m lightweight panel, painted, MDF or foamboard) | €60-100 |
+| Base floor mat / visitor platform (3 × 1.25 m, painted MDF or carpet) | €40-60 |
 | Contingency | €30-50 |
-| **Total** | **~€400-615** (target ~€500 ceiling; tightest ~€400) |
+| **Total** | **~€395-650** (comfortably under €500 at the tight end; headroom for fabrication surprises) |
+
+**Savings vs previous 40 cm × 160 cm spec:** ~€40-50 on material and wraps (half-cylinder surface area is ~5× smaller than full-cylinder wraps). Headroom reallocated to proper back-wall structure (which the dimensions doc flagged as necessary) and a proper kiosk stand.
 
 **Out-of-scope at this budget:**
 - ❌ Transparent acrylic cylinders with real soil inside (Term 2 "Beneath the Surface" concept) — €400-800 just for the tubes
@@ -222,6 +229,7 @@ AI image generation produces: the four cylinder wraps (I, II, III, IV), the attr
 
 ## Dependencies
 
+- **`2026-04-20-sketchup-model-dimensions.md`** — full geometry extract from `Model_2.dae`. Source-of-truth for all physical dimensions in this spec. Any future drawings/renders must match these numbers or update both docs in lockstep.
 - **2026-04-15 exhibition 3D visuals design** — Cylinder IV's tablet animation comes from the Three.js scene being built there.
 - **Python simulation engine** — the three numbers overlaid on the tablet animation come from `backend/soil_model/engine.py` output for the chosen philosophy × SSP combination. This already works for 20 combinations (5 philosophies × 4 SSPs).
 - **Seed-paper wristband supplier** — lead time is 2-3 weeks for bulk orders. This is the longest-lead-time item in the build and should be ordered first.
